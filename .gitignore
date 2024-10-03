@@ -1,0 +1,8 @@
+# .gitignore
+.env
+outputs/sample_output.xml
+/cmd/test.env
+
+token.txt
+sample_output.txt
+
