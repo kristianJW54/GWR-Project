@@ -4,9 +4,12 @@ import (
 	"GWR_Project/pkg/models"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/redis/go-redis/v9"
+	"log"
 	"reflect"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -205,8 +208,9 @@ func checkHSET(ctx context.Context, wg *sync.WaitGroup, rh RedisHandler, info ma
 		return
 	}
 	if check {
+		key := strings.Split(id, ":")
 		// Publish only if the check was successful
-		if err := rh.RPublishInfo(ctx, tag, info); err != nil {
+		if err := rh.RPublishInfo(ctx, tag, key[0], info); err != nil {
 			errCh <- err
 		}
 	}
@@ -240,8 +244,9 @@ func checkJSON(ctx context.Context, wg *sync.WaitGroup, rh RedisHandler, info *[
 		return // Early return on error to avoid further processing
 	}
 	if check {
+		key := strings.Split(id, ":")
 		// Publish only if the check was successful
-		if err := rh.RPublishCP(ctx, tag, info); err != nil {
+		if err := rh.RPublishCP(ctx, tag, key[0], info); err != nil {
 			errCh <- err
 		}
 	}
@@ -274,6 +279,21 @@ type RedisHandler interface {
 	RedisCacheHandler
 	RedisStorer
 	RedisPublisher
+	PingRedis() error
+}
+
+func (rc *RedisClient) PingRedis() error {
+	ctx := context.Background()
+	ping := rc.Client.Ping(ctx)
+	fmt.Println(ping.String())
+	check, err := ping.Result()
+	if err != nil {
+		return err
+	}
+	if check != "PONG" {
+		return errors.New("redis ping failed")
+	}
+	return nil
 }
 
 // RedisCacheData takes a RedisHandler which combines RedisCacheHandler interfaces and RedisStorer interface. It also takes the mapped data which
@@ -283,6 +303,8 @@ type RedisHandler interface {
 // After which the new mapped data will be cached in Redis
 func RedisCacheData(rh RedisHandler, mp *models.MappedData) error {
 	var wg sync.WaitGroup
+
+	log.Printf("Begin Cache number of goroutines: %d", runtime.NumGoroutine())
 
 	ctx, cancel := context.WithCancel(context.Background()) // <- parent context to propagate to child in order to control processing
 	defer cancel()                                          // Ensure context is cancelled to release resources
@@ -374,6 +396,8 @@ func RedisCacheData(rh RedisHandler, mp *models.MappedData) error {
 	// Wait for all goroutines to finish
 	wg.Wait()
 	close(errCh) // Close the error channel to terminate the error collection goroutine
+
+	log.Printf("End Cache number of goroutines: %d", runtime.NumGoroutine())
 
 	// Return nil if context was not cancelled due to errors
 	if ctx.Err() != nil {

@@ -21,6 +21,14 @@ type fullService struct {
 	Subsequents         []models.CallingPoint `json:"subsequents"`
 }
 
+type infoPayload struct {
+	Payload map[string]interface{} `json:"payload"`
+}
+
+type cpPayload struct {
+	Payload map[string]*[]models.CallingPoint `json:"payload"`
+}
+
 type servicePayload struct {
 	Payload map[string]*fullService `json:"payload"`
 }
@@ -33,14 +41,18 @@ type servicePayload struct {
 // TODO Include Train IDs with each publish
 
 type RedisPublisher interface {
-	RPublishCP(ctx context.Context, tag string, cp *[]models.CallingPoint) error
-	RPublishInfo(ctx context.Context, tag string, info map[string]string) error
+	RPublishCP(ctx context.Context, tag string, id string, cp *[]models.CallingPoint) error
+	RPublishInfo(ctx context.Context, tag string, id string, info map[string]string) error
 	RPublishFull(ctx context.Context, tag string, id string, value *models.ProcessedService) error
 }
 
-func (rc *RedisClient) RPublishCP(ctx context.Context, tag string, cp *[]models.CallingPoint) error {
+func (rc *RedisClient) RPublishCP(ctx context.Context, tag string, id string, cp *[]models.CallingPoint) error {
+
+	pl := &cpPayload{Payload: make(map[string]*[]models.CallingPoint, 1)}
+	pl.Payload[id] = cp
+
 	// Attempt to publish the message
-	jsonValue, err := json.Marshal(cp)
+	jsonValue, err := json.Marshal(pl)
 	if err != nil {
 		return fmt.Errorf("failed to marshal value to JSON: %w", err)
 	}
@@ -53,8 +65,12 @@ func (rc *RedisClient) RPublishCP(ctx context.Context, tag string, cp *[]models.
 	return nil
 }
 
-func (rc *RedisClient) RPublishInfo(ctx context.Context, tag string, info map[string]string) error {
-	jsonValue, err := json.Marshal(info)
+func (rc *RedisClient) RPublishInfo(ctx context.Context, tag string, id string, info map[string]string) error {
+
+	pl := &infoPayload{Payload: make(map[string]interface{}, 1)}
+	pl.Payload[id] = info
+
+	jsonValue, err := json.Marshal(pl)
 	if err != nil {
 		return fmt.Errorf("failed to marshal value to JSON: %w", err)
 	}
@@ -77,7 +93,7 @@ func (rc *RedisClient) RPublishFull(ctx context.Context, tag string, id string, 
 		Subsequents:         value.Service.SubsequentCallingPoints,
 	}
 
-	pl := &servicePayload{Payload: make(map[string]*fullService)}
+	pl := &servicePayload{Payload: make(map[string]*fullService, 1)}
 	pl.Payload[id] = service
 
 	jsonValue, err := json.Marshal(pl)

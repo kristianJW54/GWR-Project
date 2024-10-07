@@ -66,8 +66,6 @@ func TestPostRequest(t *testing.T) {
 	}
 }
 
-// TODO : test ProcessTrain function and output
-
 //--------------------------------------------------------
 // Benchmark Testing fetch all data
 //--------------------------------------------------------

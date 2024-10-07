@@ -4,8 +4,10 @@ import (
 	"GWR_Project/internal/cache"
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"os/signal"
+	"runtime"
 	"sync"
 	"syscall"
 	"time"
@@ -56,33 +58,28 @@ func PollData(ctx context.Context, token, url string, stations []string, request
 
 	for {
 		select {
-		case t := <-newTicker.C:
-			// Print every tick to verify it's working
-			fmt.Println("Ticker fired at: ", t)
-			fmt.Println("Request Count: ", pm.RequestCount)
-			fmt.Printf("Window Start: %v | Window Limit: %v \n", pm.WindowStart, pm.RequestLimitWindow)
+		case <-newTicker.C:
 
+			start := time.Now()
+
+			log.Printf("Tick")
 			pm.mu.Lock()
 
 			// Reset window if time since window start exceeds window duration
 			if time.Since(pm.WindowStart) > pm.RequestLimitWindow {
-				fmt.Println("Window ended, resetting RequestCount")
 				pm.RequestCount = 0
 				pm.WindowStart = time.Now() // Reset window start time
 			}
 
 			// If poll limit is reached, skip polling and continue ticking
 			if pm.RequestCount >= pm.PollLimit {
-				fmt.Println("Poll limit reached for the current window, skipping poll...")
 				pm.mu.Unlock() // Unlock even if skipping
 				continue
 			}
 
 			// Poll data logic here
-			// TODO add the fetch all trains here - monitor time and go routines
-			// TODO cache the data - monitor time and go routines
-			// TODO check output and success - check time and final go routines
-			fmt.Println("Polling data...")
+
+			log.Printf("Polling data...")
 			data, err := FetchAllTrains(token, url, stations, requester)
 			if err != nil {
 				pm.ErrLog <- err
@@ -95,17 +92,21 @@ func PollData(ctx context.Context, token, url string, stations []string, request
 
 			pm.mu.Unlock()
 
+			endTime := time.Now()          // Record the end time
+			duration := endTime.Sub(start) // Calculate the duration
+			log.Printf("Completed in %v", duration)
+
 		case <-pm.TickerDone: // If ticker done signal is received, stop the ticker
-			fmt.Println("Ticker done")
+			log.Printf("Ticker done")
 			return
 
 		case err := <-pm.ErrLog:
 			// Handle error received
-			fmt.Println("Error in polling data:", err)
+			log.Printf("error in polling data: %s", err)
 			return // Exit the function and prevent further ticker ticks
 
 		case <-ctx.Done(): // If the context is canceled, stop the ticker
-			fmt.Println("Context done")
+			log.Printf("context done")
 			return
 		}
 	}
@@ -117,8 +118,8 @@ func monitorOsSignalShutdown(cancel context.CancelFunc) {
 	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
 
 	sig := <-c
-	fmt.Println("Got signal: ", sig)
-	fmt.Println("Shutting down...")
+	log.Printf("got signal: %v", sig)
+	log.Printf("Shutting down...")
 	cancel()
 }
 
@@ -135,13 +136,21 @@ type PollConfig struct {
 	Requester
 }
 
-// TODO look at whether we need the PollData wrapper here
-// TODO look at what a service level run function will need and begin planning for final service deployment
-
 func RunPollService(ctx context.Context, cancel context.CancelFunc, pc *PollConfig, rh cache.RedisHandler) {
 
 	// TODO add redis client ping check to RedisHandler to check that it's live and ready before beginning poll
+	// Redis check
+	log.Printf("Pinging Redis...")
 
+	err := rh.PingRedis()
+	if err != nil {
+		<-ctx.Done()
+		return
+	}
+	log.Printf("Pinging Redis done")
+	log.Printf("Beginning Poll")
+
+	log.Printf("Starting number of goroutines: %d", runtime.NumGoroutine())
 	go PollData(ctx, pc.Token, pc.URL, pc.Stations, pc.Requester, pc.PollMonitor, rh)
 
 	// Start error monitoring (runs in the background)
@@ -153,6 +162,6 @@ func RunPollService(ctx context.Context, cancel context.CancelFunc, pc *PollConf
 	// Block until the context is canceled (due to OS signal or an error)
 	<-ctx.Done()
 
-	fmt.Println("Polling service is shutting down")
+	log.Printf("Polling service is shutting down")
 	return
 }

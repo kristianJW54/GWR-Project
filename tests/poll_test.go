@@ -237,3 +237,7 @@ func (mrh *MockRedisHandler) RPublishFull(ctx context.Context, tag string, id st
 	id = value.Service.ServiceID
 	return nil
 }
+
+func (mrh *MockRedisHandler) PingRedis() error {
+	return nil
+}
