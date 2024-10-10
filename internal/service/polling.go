@@ -51,6 +51,7 @@ func PollData(ctx context.Context, token, url string, stations []string, request
 
 	//TODO think about metrics for a possible service admin dashboard/cli output maybe channels output the key metrics
 	// or store them in memory where another function posts the metrics through internal API
+	// or prometheus??
 
 	newTicker := time.NewTicker(pm.TickerInterval)
 	defer newTicker.Stop()
@@ -80,11 +81,11 @@ func PollData(ctx context.Context, token, url string, stations []string, request
 			// Poll data logic here
 
 			log.Printf("Polling data...")
-			data, err := FetchAllTrains(token, url, stations, requester)
+			data, err := FetchAllTrains(token, url, stations, requester) //TODO think about passing context here?
 			if err != nil {
 				pm.ErrLog <- err
 			}
-			err = cache.RedisCacheData(rh, data)
+			err = cache.RedisCacheData(rh, data) //TODO think about passing context here? -> or should these child processes have their own Contexts within their structs to maintain?
 			if err != nil {
 				pm.ErrLog <- err
 			}
@@ -92,8 +93,8 @@ func PollData(ctx context.Context, token, url string, stations []string, request
 
 			pm.mu.Unlock()
 
-			endTime := time.Now()          // Record the end time
-			duration := endTime.Sub(start) // Calculate the duration
+			endTime := time.Now()
+			duration := endTime.Sub(start)
 			log.Printf("Completed in %v", duration)
 
 		case <-pm.TickerDone: // If ticker done signal is received, stop the ticker
@@ -138,7 +139,6 @@ type PollConfig struct {
 
 func RunPollService(ctx context.Context, cancel context.CancelFunc, pc *PollConfig, rh cache.RedisHandler) {
 
-	// TODO add redis client ping check to RedisHandler to check that it's live and ready before beginning poll
 	// Redis check
 	log.Printf("Pinging Redis...")
 

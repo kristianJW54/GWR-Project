@@ -296,10 +296,10 @@ func (rc *RedisClient) PingRedis() error {
 	return nil
 }
 
-// RedisCacheData takes a RedisHandler which combines RedisCacheHandler interfaces and RedisStorer interface. It also takes the mapped data which
+// RedisCacheData takes a RedisHandler which combines RedisCacheHandler, RedisPublisher interfaces and RedisStorer interface. It also takes the mapped data which
 // Is polled from the SOAP API and processed by the train_data service
 // CacheData loops through the mapped data values and compares the data with what is already cached, if there are any changes
-// It will send the changes to a channel
+// It will send the changes to be published with a tag and id attached
 // After which the new mapped data will be cached in Redis
 func RedisCacheData(rh RedisHandler, mp *models.MappedData) error {
 	var wg sync.WaitGroup
@@ -310,20 +310,17 @@ func RedisCacheData(rh RedisHandler, mp *models.MappedData) error {
 	defer cancel()                                          // Ensure context is cancelled to release resources
 
 	// Error channel to capture errors from all goroutines
-	errCh := make(chan error, len(mp.Map)*6)
+	errCh := make(chan error, 1) //TODO review size of error channel and if we want to cancel - may need error types
 
 	// Launch a separate goroutine to collect errors
 	go func() {
 		for err := range errCh {
 			if err != nil {
-				fmt.Println("Error:", err)
+				log.Printf("error: %s", err)
 				cancel() // Cancel context if any error occurs
 			}
 		}
 	}()
-
-	// Print the initial number of goroutines before starting the cache process
-	//fmt.Printf("Goroutines before processing: %d\n", runtime.NumGoroutine()) <- possible log for concurrency health
 
 	for _, value := range mp.Map {
 		value := value // Capture value to avoid closure issues
@@ -339,8 +336,7 @@ func RedisCacheData(rh RedisHandler, mp *models.MappedData) error {
 				"DestinationCRS":      value.Service.Destination.CRS,
 			}
 
-			// Checks - If key is not in cache then must be new data and should be published (provided that the data
-			// is correct)
+			// Checks
 			checkWg := sync.WaitGroup{}
 			checkWg.Add(4)
 			go checkJSON(ctx, &checkWg, rh, &value.Service.PreviousCallingPoints, value.Service.ServiceID, "previous", errCh)
@@ -351,8 +347,7 @@ func RedisCacheData(rh RedisHandler, mp *models.MappedData) error {
 
 			// Return early if context cancellation on checks
 			if ctx.Err() != nil {
-				//fmt.Println("Goroutine canceled for:", value.Service.ServiceID) -> Turn into log check
-				// Add log error
+				log.Printf("Goroutine canceled for: %s", value.Service.ServiceID)
 				return
 			}
 
@@ -362,7 +357,6 @@ func RedisCacheData(rh RedisHandler, mp *models.MappedData) error {
 			storeWg.Add(3)
 
 			// TODO Refactor below to be more clean and efficient
-			// TODO Maybe add checks first then block until done then store
 
 			go func() {
 				defer storeWg.Done()

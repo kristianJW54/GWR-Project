@@ -204,6 +204,12 @@ func (ps *Model) OrganiseLine(cl []models.CallingPoint) error {
 	return nil
 }
 
+//TODO may need method to determine if a train route is active or not? Polling from stations which are not busy
+// can lead to pulling routes which do not start soon (>1 hour away)
+
+//TODO may need a cancelled method to check if a route has been cancelled to signal to caching function whether to
+// remove the route and publish cancel event??
+
 //-------------------------------------------------------------------
 // Function to run the process methods and populate the ProcessedService Struct concurrently
 //-------------------------------------------------------------------
@@ -295,46 +301,7 @@ func FilterByOperatorCode(data []byte, operatorCode string) (*models.TrainEnvelo
 }
 
 //-------------------------------------------------------------------
-// Concurrently Pull All 60 Stations Data
-//-------------------------------------------------------------------
-
-func StationCodeList() ([]string, error) {
-
-	var list []string
-
-	list = append(list, "WOS")
-	list = append(list, "GMV")
-	list = append(list, "RDG")
-
-	//filePath := os.Getenv("STATIONS")
-	//
-	//// Convert relative path to absolute path
-	//absPath, err := filepath.Abs(filePath)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	//file, err := os.Open(absPath)
-	//if err != nil {
-	//	log.Fatal("Error while reading the file ", err)
-	//	return nil, err
-	//}
-	//defer file.Close()
-	//
-	//csvReader := csv.NewReader(file)
-	//records, err := csvReader.ReadAll()
-	//if err != nil {
-	//	log.Fatal("Error while reading the file", err)
-	//	return nil, err
-	//}
-	//for _, record := range records {
-	//	list = append(list, record[0])
-	//}
-	return list, nil
-}
-
-//-------------------------------------------------------------------
-// Channel Approach - Using channels and a struct to send data to for each station
+// Channel Approach - Using channels and a struct to send data to for each processed station
 //-------------------------------------------------------------------
 
 type StationsChannel struct {

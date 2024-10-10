@@ -3,6 +3,7 @@ package main
 import (
 	"GWR_Project/internal/cache"
 	"GWR_Project/internal/service"
+	"GWR_Project/pkg/catalogue"
 	"context"
 	"github.com/joho/godotenv"
 	"github.com/redis/go-redis/v9"
@@ -20,7 +21,6 @@ func init() {
 }
 
 func main() {
-	// Run main function
 
 	// Retrieve the API token from the environment variable
 	Token := os.Getenv("TRAIN_TOKEN")
@@ -29,20 +29,9 @@ func main() {
 		log.Fatal("environment variable is not set")
 	}
 
-	//Start time
-	//start := time.Now()
-
-	stations, err := service.StationCodeList()
-	if err != nil {
-		log.Fatal(err)
-	}
+	stations := catalogue.StationCatalog
 
 	requester := service.NewClientRequester()
-
-	//data, err := service.FetchAllTrains(Token, URL, stations, requester)
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
 
 	opt := &redis.Options{
 		Addr:     "localhost:6379",
@@ -54,11 +43,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	//err = cache.RedisCacheData(nc, data)
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
 
 	ps := &service.PollSetup{
 		Token:    Token,
