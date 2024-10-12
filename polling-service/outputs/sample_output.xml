@@ -1,0 +1,972 @@
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+   <soap:Body>
+      <GetArrDepBoardWithDetailsResponse xmlns="http://thalesgroup.com/RTTI/2021-11-01/ldb/">
+          <GetStationBoardResult xmlns:lt8="http://thalesgroup.com/RTTI/2021-11-01/ldb/types"
+                                 xmlns:lt4="http://thalesgroup.com/RTTI/2015-11-27/ldb/types"
+                                 xmlns:lt5="http://thalesgroup.com/RTTI/2016-02-16/ldb/types"
+          >
+            <lt4:generatedAt>2024-08-15T19:28:25.0935806+01:00</lt4:generatedAt>
+            <lt4:locationName>London Paddington</lt4:locationName>
+            <lt4:crs>PAD</lt4:crs>
+            <lt4:platformAvailable>true</lt4:platformAvailable>
+            <lt8:trainServices>
+               <lt8:service>
+                  <lt4:sta>19:16</lt4:sta>
+                  <lt4:eta>19:27</lt4:eta>
+                  <lt4:platform>8</lt4:platform>
+                  <lt4:operator>Great Western Railway</lt4:operator>
+                  <lt4:operatorCode>GW</lt4:operatorCode>
+                  <lt4:serviceType>train</lt4:serviceType>
+                  <lt4:serviceID>4834069PADTON__</lt4:serviceID>
+                  <lt5:rsid>GW645200</lt5:rsid>
+                  <lt5:origin>
+                     <lt4:location>
+                        <lt4:locationName>Swansea</lt4:locationName>
+                        <lt4:crs>SWA</lt4:crs>
+                     </lt4:location>
+                  </lt5:origin>
+                  <lt5:destination>
+                     <lt4:location>
+                        <lt4:locationName>London Paddington</lt4:locationName>
+                        <lt4:crs>PAD</lt4:crs>
+                     </lt4:location>
+                  </lt5:destination>
+                  <lt8:previousCallingPoints>
+                     <lt8:callingPointList>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Swansea</lt8:locationName>
+                           <lt8:crs>SWA</lt8:crs>
+                           <lt8:st>16:23</lt8:st>
+                           <lt8:at>On time</lt8:at>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Neath</lt8:locationName>
+                           <lt8:crs>NTH</lt8:crs>
+                           <lt8:st>16:35</lt8:st>
+                           <lt8:at>On time</lt8:at>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Port Talbot Parkway</lt8:locationName>
+                           <lt8:crs>PTA</lt8:crs>
+                           <lt8:st>16:42</lt8:st>
+                           <lt8:at>On time</lt8:at>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Bridgend</lt8:locationName>
+                           <lt8:crs>BGN</lt8:crs>
+                           <lt8:st>16:55</lt8:st>
+                           <lt8:at>On time</lt8:at>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Cardiff Central</lt8:locationName>
+                           <lt8:crs>CDF</lt8:crs>
+                           <lt8:st>17:20</lt8:st>
+                           <lt8:at>On time</lt8:at>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Newport (South Wales)</lt8:locationName>
+                           <lt8:crs>NWP</lt8:crs>
+                           <lt8:st>17:35</lt8:st>
+                           <lt8:at>On time</lt8:at>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Bristol Parkway</lt8:locationName>
+                           <lt8:crs>BPW</lt8:crs>
+                           <lt8:st>17:55</lt8:st>
+                           <lt8:at>On time</lt8:at>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Swindon</lt8:locationName>
+                           <lt8:crs>SWI</lt8:crs>
+                           <lt8:st>18:19</lt8:st>
+                           <lt8:at>18:21</lt8:at>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Reading</lt8:locationName>
+                           <lt8:crs>RDG</lt8:crs>
+                           <lt8:st>18:49</lt8:st>
+                           <lt8:at>On time</lt8:at>
+                        </lt8:callingPoint>
+                     </lt8:callingPointList>
+                  </lt8:previousCallingPoints>
+               </lt8:service>
+               <lt8:service>
+                  <lt4:sta>19:18</lt4:sta>
+                  <lt4:eta>19:28</lt4:eta>
+                  <lt4:platform>7</lt4:platform>
+                  <lt4:operator>Heathrow Express</lt4:operator>
+                  <lt4:operatorCode>HX</lt4:operatorCode>
+                  <lt4:serviceType>train</lt4:serviceType>
+                  <lt4:serviceID>4855681PADTON__</lt4:serviceID>
+                  <lt5:rsid>HX020000</lt5:rsid>
+                  <lt5:origin>
+                     <lt4:location>
+                        <lt4:locationName>Heathrow Airport T5</lt4:locationName>
+                        <lt4:crs>HWV</lt4:crs>
+                     </lt4:location>
+                  </lt5:origin>
+                  <lt5:destination>
+                     <lt4:location>
+                        <lt4:locationName>London Paddington</lt4:locationName>
+                        <lt4:crs>PAD</lt4:crs>
+                     </lt4:location>
+                  </lt5:destination>
+                  <lt8:previousCallingPoints>
+                     <lt8:callingPointList>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Heathrow Airport T5</lt8:locationName>
+                           <lt8:crs>HWV</lt8:crs>
+                           <lt8:st>18:57</lt8:st>
+                           <lt8:at>On time</lt8:at>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Heathrow Airport T123</lt8:locationName>
+                           <lt8:crs>HXX</lt8:crs>
+                           <lt8:st>19:02</lt8:st>
+                           <lt8:at>On time</lt8:at>
+                        </lt8:callingPoint>
+                     </lt8:callingPointList>
+                  </lt8:previousCallingPoints>
+               </lt8:service>
+               <lt8:service>
+                  <lt4:std>19:20</lt4:std>
+                  <lt4:etd>19:28</lt4:etd>
+                  <lt4:platform>12</lt4:platform>
+                  <lt4:operator>Great Western Railway</lt4:operator>
+                  <lt4:operatorCode>GW</lt4:operatorCode>
+                  <lt4:serviceType>train</lt4:serviceType>
+                  <lt4:serviceID>4853148PADTON__</lt4:serviceID>
+                  <lt5:rsid>GW341100</lt5:rsid>
+                  <lt5:origin>
+                     <lt4:location>
+                        <lt4:locationName>London Paddington</lt4:locationName>
+                        <lt4:crs>PAD</lt4:crs>
+                     </lt4:location>
+                  </lt5:origin>
+                  <lt5:destination>
+                     <lt4:location>
+                        <lt4:locationName>Didcot Parkway</lt4:locationName>
+                        <lt4:crs>DID</lt4:crs>
+                     </lt4:location>
+                  </lt5:destination>
+                  <lt8:subsequentCallingPoints>
+                     <lt8:callingPointList>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Maidenhead</lt8:locationName>
+                           <lt8:crs>MAI</lt8:crs>
+                           <lt8:st>19:38</lt8:st>
+                           <lt8:et>19:45</lt8:et>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Twyford</lt8:locationName>
+                           <lt8:crs>TWY</lt8:crs>
+                           <lt8:st>19:46</lt8:st>
+                           <lt8:et>19:52</lt8:et>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Reading</lt8:locationName>
+                           <lt8:crs>RDG</lt8:crs>
+                           <lt8:st>19:54</lt8:st>
+                           <lt8:et>19:59</lt8:et>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Tilehurst</lt8:locationName>
+                           <lt8:crs>TLH</lt8:crs>
+                           <lt8:st>20:01</lt8:st>
+                           <lt8:et>20:03</lt8:et>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Pangbourne</lt8:locationName>
+                           <lt8:crs>PAN</lt8:crs>
+                           <lt8:st>20:05</lt8:st>
+                           <lt8:et>20:07</lt8:et>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Goring &amp; Streatley</lt8:locationName>
+                           <lt8:crs>GOR</lt8:crs>
+                           <lt8:st>20:10</lt8:st>
+                           <lt8:et>20:12</lt8:et>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Cholsey</lt8:locationName>
+                           <lt8:crs>CHO</lt8:crs>
+                           <lt8:st>20:15</lt8:st>
+                           <lt8:et>On time</lt8:et>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Didcot Parkway</lt8:locationName>
+                           <lt8:crs>DID</lt8:crs>
+                           <lt8:st>20:23</lt8:st>
+                           <lt8:et>On time</lt8:et>
+                        </lt8:callingPoint>
+                     </lt8:callingPointList>
+                  </lt8:subsequentCallingPoints>
+               </lt8:service>
+               <lt8:service>
+                  <lt4:sta>19:21</lt4:sta>
+                  <lt4:eta>Delayed</lt4:eta>
+                  <lt4:platform>9</lt4:platform>
+                  <lt4:operator>Great Western Railway</lt4:operator>
+                  <lt4:operatorCode>GW</lt4:operatorCode>
+                  <lt4:serviceType>train</lt4:serviceType>
+                  <lt4:serviceID>4855731PADTON__</lt4:serviceID>
+                  <lt5:rsid>GW143900</lt5:rsid>
+                  <lt5:origin>
+                     <lt4:location>
+                        <lt4:locationName>Plymouth</lt4:locationName>
+                        <lt4:crs>PLY</lt4:crs>
+                     </lt4:location>
+                  </lt5:origin>
+                  <lt5:destination>
+                     <lt4:location>
+                        <lt4:locationName>London Paddington</lt4:locationName>
+                        <lt4:crs>PAD</lt4:crs>
+                     </lt4:location>
+                  </lt5:destination>
+                  <lt8:previousCallingPoints>
+                     <lt8:callingPointList>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Plymouth</lt8:locationName>
+                           <lt8:crs>PLY</lt8:crs>
+                           <lt8:st>15:49</lt8:st>
+                           <lt8:at>On time</lt8:at>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Totnes</lt8:locationName>
+                           <lt8:crs>TOT</lt8:crs>
+                           <lt8:st>16:15</lt8:st>
+                           <lt8:at>On time</lt8:at>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Newton Abbot</lt8:locationName>
+                           <lt8:crs>NTA</lt8:crs>
+                           <lt8:st>16:28</lt8:st>
+                           <lt8:at>On time</lt8:at>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Exeter St Davids</lt8:locationName>
+                           <lt8:crs>EXD</lt8:crs>
+                           <lt8:st>16:51</lt8:st>
+                           <lt8:at>On time</lt8:at>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Taunton</lt8:locationName>
+                           <lt8:crs>TAU</lt8:crs>
+                           <lt8:st>17:15</lt8:st>
+                           <lt8:at>On time</lt8:at>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Castle Cary</lt8:locationName>
+                           <lt8:crs>CLC</lt8:crs>
+                           <lt8:st>17:36</lt8:st>
+                           <lt8:at>On time</lt8:at>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Westbury</lt8:locationName>
+                           <lt8:crs>WSB</lt8:crs>
+                           <lt8:st>17:56</lt8:st>
+                           <lt8:at>On time</lt8:at>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Newbury</lt8:locationName>
+                           <lt8:crs>NBY</lt8:crs>
+                           <lt8:st>18:40</lt8:st>
+                           <lt8:at>On time</lt8:at>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Reading</lt8:locationName>
+                           <lt8:crs>RDG</lt8:crs>
+                           <lt8:st>18:57</lt8:st>
+                           <lt8:at>On time</lt8:at>
+                        </lt8:callingPoint>
+                     </lt8:callingPointList>
+                  </lt8:previousCallingPoints>
+               </lt8:service>
+               <lt8:service>
+                  <lt4:sta>19:24</lt4:sta>
+                  <lt4:eta>19:30</lt4:eta>
+                  <lt4:platform>3</lt4:platform>
+                  <lt4:operator>Great Western Railway</lt4:operator>
+                  <lt4:operatorCode>GW</lt4:operatorCode>
+                  <lt4:serviceType>train</lt4:serviceType>
+                  <lt4:serviceID>4845927PADTON__</lt4:serviceID>
+                  <lt5:rsid>GW144000</lt5:rsid>
+                  <lt5:origin>
+                     <lt4:location>
+                        <lt4:locationName>Penzance</lt4:locationName>
+                        <lt4:crs>PNZ</lt4:crs>
+                     </lt4:location>
+                  </lt5:origin>
+                  <lt5:destination>
+                     <lt4:location>
+                        <lt4:locationName>London Paddington</lt4:locationName>
+                        <lt4:crs>PAD</lt4:crs>
+                     </lt4:location>
+                  </lt5:destination>
+                  <lt8:previousCallingPoints>
+                     <lt8:callingPointList>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Penzance</lt8:locationName>
+                           <lt8:crs>PNZ</lt8:crs>
+                           <lt8:st>14:15</lt8:st>
+                           <lt8:at>On time</lt8:at>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>St Erth</lt8:locationName>
+                           <lt8:crs>SER</lt8:crs>
+                           <lt8:st>14:24</lt8:st>
+                           <lt8:at>On time</lt8:at>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Camborne</lt8:locationName>
+                           <lt8:crs>CBN</lt8:crs>
+                           <lt8:st>14:35</lt8:st>
+                           <lt8:at>On time</lt8:at>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Redruth</lt8:locationName>
+                           <lt8:crs>RED</lt8:crs>
+                           <lt8:st>14:42</lt8:st>
+                           <lt8:at>On time</lt8:at>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Truro</lt8:locationName>
+                           <lt8:crs>TRU</lt8:crs>
+                           <lt8:st>14:54</lt8:st>
+                           <lt8:at>On time</lt8:at>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>St Austell</lt8:locationName>
+                           <lt8:crs>SAU</lt8:crs>
+                           <lt8:st>15:11</lt8:st>
+                           <lt8:at>On time</lt8:at>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Par</lt8:locationName>
+                           <lt8:crs>PAR</lt8:crs>
+                           <lt8:st>15:19</lt8:st>
+                           <lt8:at>15:17</lt8:at>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Bodmin Parkway</lt8:locationName>
+                           <lt8:crs>BOD</lt8:crs>
+                           <lt8:st>15:32</lt8:st>
+                           <lt8:at>On time</lt8:at>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Liskeard</lt8:locationName>
+                           <lt8:crs>LSK</lt8:crs>
+                           <lt8:st>15:45</lt8:st>
+                           <lt8:at>On time</lt8:at>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Plymouth</lt8:locationName>
+                           <lt8:crs>PLY</lt8:crs>
+                           <lt8:st>16:15</lt8:st>
+                           <lt8:at>On time</lt8:at>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Totnes</lt8:locationName>
+                           <lt8:crs>TOT</lt8:crs>
+                           <lt8:st>16:42</lt8:st>
+                           <lt8:at>On time</lt8:at>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Newton Abbot</lt8:locationName>
+                           <lt8:crs>NTA</lt8:crs>
+                           <lt8:st>16:54</lt8:st>
+                           <lt8:at>On time</lt8:at>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Exeter St Davids</lt8:locationName>
+                           <lt8:crs>EXD</lt8:crs>
+                           <lt8:st>17:15</lt8:st>
+                           <lt8:at>On time</lt8:at>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Tiverton Parkway</lt8:locationName>
+                           <lt8:crs>TVP</lt8:crs>
+                           <lt8:st>17:29</lt8:st>
+                           <lt8:at>On time</lt8:at>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Taunton</lt8:locationName>
+                           <lt8:crs>TAU</lt8:crs>
+                           <lt8:st>17:42</lt8:st>
+                           <lt8:at>On time</lt8:at>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Reading</lt8:locationName>
+                           <lt8:crs>RDG</lt8:crs>
+                           <lt8:st>19:00</lt8:st>
+                           <lt8:at>On time</lt8:at>
+                        </lt8:callingPoint>
+                     </lt8:callingPointList>
+                  </lt8:previousCallingPoints>
+               </lt8:service>
+               <lt8:service>
+                  <lt4:sta>19:26</lt4:sta>
+                  <lt4:eta>On time</lt4:eta>
+                  <lt4:std>19:27</lt4:std>
+                  <lt4:etd>On time</lt4:etd>
+                  <lt4:platform>A</lt4:platform>
+                  <lt4:operator>Elizabeth Line</lt4:operator>
+                  <lt4:operatorCode>XR</lt4:operatorCode>
+                  <lt4:serviceType>train</lt4:serviceType>
+                  <lt4:serviceID>4834576PADTLL__</lt4:serviceID>
+                  <lt5:rsid>XR272300</lt5:rsid>
+                  <lt5:origin>
+                     <lt4:location>
+                        <lt4:locationName>Reading</lt4:locationName>
+                        <lt4:crs>RDG</lt4:crs>
+                     </lt4:location>
+                  </lt5:origin>
+                  <lt5:destination>
+                     <lt4:location>
+                        <lt4:locationName>Abbey Wood</lt4:locationName>
+                        <lt4:crs>ABW</lt4:crs>
+                     </lt4:location>
+                  </lt5:destination>
+                  <lt8:previousCallingPoints>
+                     <lt8:callingPointList>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Reading</lt8:locationName>
+                           <lt8:crs>RDG</lt8:crs>
+                           <lt8:st>18:28</lt8:st>
+                           <lt8:at>On time</lt8:at>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Twyford</lt8:locationName>
+                           <lt8:crs>TWY</lt8:crs>
+                           <lt8:st>18:34</lt8:st>
+                           <lt8:at>On time</lt8:at>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Maidenhead</lt8:locationName>
+                           <lt8:crs>MAI</lt8:crs>
+                           <lt8:st>18:41</lt8:st>
+                           <lt8:at>On time</lt8:at>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Taplow</lt8:locationName>
+                           <lt8:crs>TAP</lt8:crs>
+                           <lt8:st>18:44</lt8:st>
+                           <lt8:at>18:46</lt8:at>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Burnham</lt8:locationName>
+                           <lt8:crs>BNM</lt8:crs>
+                           <lt8:st>18:47</lt8:st>
+                           <lt8:at>On time</lt8:at>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Slough</lt8:locationName>
+                           <lt8:crs>SLO</lt8:crs>
+                           <lt8:st>18:51</lt8:st>
+                           <lt8:at>18:53</lt8:at>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Langley</lt8:locationName>
+                           <lt8:crs>LNY</lt8:crs>
+                           <lt8:st>18:55</lt8:st>
+                           <lt8:at>On time</lt8:at>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Iver</lt8:locationName>
+                           <lt8:crs>IVR</lt8:crs>
+                           <lt8:st>18:57</lt8:st>
+                           <lt8:at>18:59</lt8:at>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>West Drayton</lt8:locationName>
+                           <lt8:crs>WDT</lt8:crs>
+                           <lt8:st>19:00</lt8:st>
+                           <lt8:at>19:03</lt8:at>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Hayes &amp; Harlington</lt8:locationName>
+                           <lt8:crs>HAY</lt8:crs>
+                           <lt8:st>19:05</lt8:st>
+                           <lt8:at>19:07</lt8:at>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Southall</lt8:locationName>
+                           <lt8:crs>STL</lt8:crs>
+                           <lt8:st>19:08</lt8:st>
+                           <lt8:at>19:10</lt8:at>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Ealing Broadway</lt8:locationName>
+                           <lt8:crs>EAL</lt8:crs>
+                           <lt8:st>19:15</lt8:st>
+                           <lt8:at>19:17</lt8:at>
+                        </lt8:callingPoint>
+                     </lt8:callingPointList>
+                  </lt8:previousCallingPoints>
+                  <lt8:subsequentCallingPoints>
+                     <lt8:callingPointList>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Bond Street</lt8:locationName>
+                           <lt8:crs>BDS</lt8:crs>
+                           <lt8:st>19:30</lt8:st>
+                           <lt8:et>On time</lt8:et>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Tottenham Court Road</lt8:locationName>
+                           <lt8:crs>TCR</lt8:crs>
+                           <lt8:st>19:32</lt8:st>
+                           <lt8:et>On time</lt8:et>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Farringdon</lt8:locationName>
+                           <lt8:crs>ZFD</lt8:crs>
+                           <lt8:st>19:35</lt8:st>
+                           <lt8:et>On time</lt8:et>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>London Liverpool Street</lt8:locationName>
+                           <lt8:crs>LST</lt8:crs>
+                           <lt8:st>19:37</lt8:st>
+                           <lt8:et>On time</lt8:et>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Whitechapel</lt8:locationName>
+                           <lt8:crs>ZLW</lt8:crs>
+                           <lt8:st>19:40</lt8:st>
+                           <lt8:et>On time</lt8:et>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Canary Wharf (Elizabeth line)</lt8:locationName>
+                           <lt8:crs>CWX</lt8:crs>
+                           <lt8:st>19:44</lt8:st>
+                           <lt8:et>On time</lt8:et>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Custom House</lt8:locationName>
+                           <lt8:crs>CUS</lt8:crs>
+                           <lt8:st>19:48</lt8:st>
+                           <lt8:et>On time</lt8:et>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Woolwich (Elizabeth line)</lt8:locationName>
+                           <lt8:crs>WWC</lt8:crs>
+                           <lt8:st>19:52</lt8:st>
+                           <lt8:et>On time</lt8:et>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Abbey Wood</lt8:locationName>
+                           <lt8:crs>ABW</lt8:crs>
+                           <lt8:st>19:58</lt8:st>
+                           <lt8:et>On time</lt8:et>
+                        </lt8:callingPoint>
+                     </lt8:callingPointList>
+                  </lt8:subsequentCallingPoints>
+               </lt8:service>
+               <lt8:service>
+                  <lt4:sta>19:29</lt4:sta>
+                  <lt4:eta>19:32</lt4:eta>
+                  <lt4:platform>10</lt4:platform>
+                  <lt4:operator>Great Western Railway</lt4:operator>
+                  <lt4:operatorCode>GW</lt4:operatorCode>
+                  <lt4:serviceType>train</lt4:serviceType>
+                  <lt4:serviceID>4834873PADTON__</lt4:serviceID>
+                  <lt5:rsid>GW745600</lt5:rsid>
+                  <lt5:origin>
+                     <lt4:location>
+                        <lt4:locationName>Oxford</lt4:locationName>
+                        <lt4:crs>OXF</lt4:crs>
+                     </lt4:location>
+                  </lt5:origin>
+                  <lt5:destination>
+                     <lt4:location>
+                        <lt4:locationName>London Paddington</lt4:locationName>
+                        <lt4:crs>PAD</lt4:crs>
+                     </lt4:location>
+                  </lt5:destination>
+                  <lt8:previousCallingPoints>
+                     <lt8:callingPointList>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Oxford</lt8:locationName>
+                           <lt8:crs>OXF</lt8:crs>
+                           <lt8:st>18:32</lt8:st>
+                           <lt8:at>On time</lt8:at>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Didcot Parkway</lt8:locationName>
+                           <lt8:crs>DID</lt8:crs>
+                           <lt8:st>18:45</lt8:st>
+                           <lt8:at>On time</lt8:at>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Reading</lt8:locationName>
+                           <lt8:crs>RDG</lt8:crs>
+                           <lt8:st>19:03</lt8:st>
+                           <lt8:at>On time</lt8:at>
+                        </lt8:callingPoint>
+                     </lt8:callingPointList>
+                  </lt8:previousCallingPoints>
+               </lt8:service>
+               <lt8:service>
+                  <lt4:sta>19:29</lt4:sta>
+                  <lt4:eta>On time</lt4:eta>
+                  <lt4:std>19:30</lt4:std>
+                  <lt4:etd>On time</lt4:etd>
+                  <lt4:platform>B</lt4:platform>
+                  <lt4:operator>Elizabeth Line</lt4:operator>
+                  <lt4:operatorCode>XR</lt4:operatorCode>
+                  <lt4:serviceType>train</lt4:serviceType>
+                  <lt4:serviceID>4833879PADTLL__</lt4:serviceID>
+                  <lt5:rsid>XR257900</lt5:rsid>
+                  <lt5:origin>
+                     <lt4:location>
+                        <lt4:locationName>Abbey Wood</lt4:locationName>
+                        <lt4:crs>ABW</lt4:crs>
+                     </lt4:location>
+                  </lt5:origin>
+                  <lt5:destination>
+                     <lt4:location>
+                        <lt4:locationName>Maidenhead</lt4:locationName>
+                        <lt4:crs>MAI</lt4:crs>
+                     </lt4:location>
+                  </lt5:destination>
+                  <lt8:previousCallingPoints>
+                     <lt8:callingPointList>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Abbey Wood</lt8:locationName>
+                           <lt8:crs>ABW</lt8:crs>
+                           <lt8:st>19:00</lt8:st>
+                           <lt8:at>On time</lt8:at>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Woolwich (Elizabeth line)</lt8:locationName>
+                           <lt8:crs>WWC</lt8:crs>
+                           <lt8:st>19:03</lt8:st>
+                           <lt8:at>On time</lt8:at>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Custom House</lt8:locationName>
+                           <lt8:crs>CUS</lt8:crs>
+                           <lt8:st>19:07</lt8:st>
+                           <lt8:at>On time</lt8:at>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Canary Wharf (Elizabeth line)</lt8:locationName>
+                           <lt8:crs>CWX</lt8:crs>
+                           <lt8:st>19:11</lt8:st>
+                           <lt8:at>On time</lt8:at>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Whitechapel</lt8:locationName>
+                           <lt8:crs>ZLW</lt8:crs>
+                           <lt8:st>19:15</lt8:st>
+                           <lt8:at>On time</lt8:at>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>London Liverpool Street</lt8:locationName>
+                           <lt8:crs>LST</lt8:crs>
+                           <lt8:st>19:18</lt8:st>
+                           <lt8:at>On time</lt8:at>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Farringdon</lt8:locationName>
+                           <lt8:crs>ZFD</lt8:crs>
+                           <lt8:st>19:21</lt8:st>
+                           <lt8:at>On time</lt8:at>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Tottenham Court Road</lt8:locationName>
+                           <lt8:crs>TCR</lt8:crs>
+                           <lt8:st>19:24</lt8:st>
+                           <lt8:at>On time</lt8:at>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Bond Street</lt8:locationName>
+                           <lt8:crs>BDS</lt8:crs>
+                           <lt8:st>19:26</lt8:st>
+                           <lt8:at>On time</lt8:at>
+                        </lt8:callingPoint>
+                     </lt8:callingPointList>
+                  </lt8:previousCallingPoints>
+                  <lt8:subsequentCallingPoints>
+                     <lt8:callingPointList>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Ealing Broadway</lt8:locationName>
+                           <lt8:crs>EAL</lt8:crs>
+                           <lt8:st>19:38</lt8:st>
+                           <lt8:et>On time</lt8:et>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Southall</lt8:locationName>
+                           <lt8:crs>STL</lt8:crs>
+                           <lt8:st>19:45</lt8:st>
+                           <lt8:et>On time</lt8:et>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Hayes &amp; Harlington</lt8:locationName>
+                           <lt8:crs>HAY</lt8:crs>
+                           <lt8:st>19:48</lt8:st>
+                           <lt8:et>On time</lt8:et>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>West Drayton</lt8:locationName>
+                           <lt8:crs>WDT</lt8:crs>
+                           <lt8:st>19:52</lt8:st>
+                           <lt8:et>On time</lt8:et>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Iver</lt8:locationName>
+                           <lt8:crs>IVR</lt8:crs>
+                           <lt8:st>19:55</lt8:st>
+                           <lt8:et>On time</lt8:et>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Langley</lt8:locationName>
+                           <lt8:crs>LNY</lt8:crs>
+                           <lt8:st>19:57</lt8:st>
+                           <lt8:et>On time</lt8:et>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Slough</lt8:locationName>
+                           <lt8:crs>SLO</lt8:crs>
+                           <lt8:st>20:01</lt8:st>
+                           <lt8:et>On time</lt8:et>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Burnham</lt8:locationName>
+                           <lt8:crs>BNM</lt8:crs>
+                           <lt8:st>20:05</lt8:st>
+                           <lt8:et>On time</lt8:et>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Maidenhead</lt8:locationName>
+                           <lt8:crs>MAI</lt8:crs>
+                           <lt8:st>20:12</lt8:st>
+                           <lt8:et>On time</lt8:et>
+                        </lt8:callingPoint>
+                     </lt8:callingPointList>
+                  </lt8:subsequentCallingPoints>
+               </lt8:service>
+               <lt8:service>
+                  <lt4:std>19:30</lt4:std>
+                  <lt4:etd>On time</lt4:etd>
+                  <lt4:platform>A</lt4:platform>
+                  <lt4:operator>Elizabeth Line</lt4:operator>
+                  <lt4:operatorCode>XR</lt4:operatorCode>
+                  <lt4:serviceType>train</lt4:serviceType>
+                  <lt4:serviceID>4835305PADTLL__</lt4:serviceID>
+                  <lt5:rsid>XR288800</lt5:rsid>
+                  <lt5:origin>
+                     <lt4:location>
+                        <lt4:locationName>London Paddington</lt4:locationName>
+                        <lt4:crs>PAD</lt4:crs>
+                     </lt4:location>
+                  </lt5:origin>
+                  <lt5:destination>
+                     <lt4:location>
+                        <lt4:locationName>Shenfield</lt4:locationName>
+                        <lt4:crs>SNF</lt4:crs>
+                     </lt4:location>
+                  </lt5:destination>
+                  <lt8:subsequentCallingPoints>
+                     <lt8:callingPointList>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Bond Street</lt8:locationName>
+                           <lt8:crs>BDS</lt8:crs>
+                           <lt8:st>19:33</lt8:st>
+                           <lt8:et>On time</lt8:et>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Tottenham Court Road</lt8:locationName>
+                           <lt8:crs>TCR</lt8:crs>
+                           <lt8:st>19:35</lt8:st>
+                           <lt8:et>On time</lt8:et>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Farringdon</lt8:locationName>
+                           <lt8:crs>ZFD</lt8:crs>
+                           <lt8:st>19:38</lt8:st>
+                           <lt8:et>On time</lt8:et>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>London Liverpool Street</lt8:locationName>
+                           <lt8:crs>LST</lt8:crs>
+                           <lt8:st>19:40</lt8:st>
+                           <lt8:et>On time</lt8:et>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Whitechapel</lt8:locationName>
+                           <lt8:crs>ZLW</lt8:crs>
+                           <lt8:st>19:43</lt8:st>
+                           <lt8:et>On time</lt8:et>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Stratford (London)</lt8:locationName>
+                           <lt8:crs>SRA</lt8:crs>
+                           <lt8:st>19:48</lt8:st>
+                           <lt8:et>On time</lt8:et>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Maryland</lt8:locationName>
+                           <lt8:crs>MYL</lt8:crs>
+                           <lt8:st>19:51</lt8:st>
+                           <lt8:et>On time</lt8:et>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Forest Gate</lt8:locationName>
+                           <lt8:crs>FOG</lt8:crs>
+                           <lt8:st>19:53</lt8:st>
+                           <lt8:et>On time</lt8:et>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Manor Park</lt8:locationName>
+                           <lt8:crs>MNP</lt8:crs>
+                           <lt8:st>19:56</lt8:st>
+                           <lt8:et>On time</lt8:et>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Ilford</lt8:locationName>
+                           <lt8:crs>IFD</lt8:crs>
+                           <lt8:st>19:58</lt8:st>
+                           <lt8:et>On time</lt8:et>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Seven Kings</lt8:locationName>
+                           <lt8:crs>SVK</lt8:crs>
+                           <lt8:st>20:01</lt8:st>
+                           <lt8:et>On time</lt8:et>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Goodmayes</lt8:locationName>
+                           <lt8:crs>GMY</lt8:crs>
+                           <lt8:st>20:03</lt8:st>
+                           <lt8:et>On time</lt8:et>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Chadwell Heath</lt8:locationName>
+                           <lt8:crs>CTH</lt8:crs>
+                           <lt8:st>20:05</lt8:st>
+                           <lt8:et>On time</lt8:et>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Romford</lt8:locationName>
+                           <lt8:crs>RMF</lt8:crs>
+                           <lt8:st>20:09</lt8:st>
+                           <lt8:et>On time</lt8:et>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Gidea Park</lt8:locationName>
+                           <lt8:crs>GDP</lt8:crs>
+                           <lt8:st>20:12</lt8:st>
+                           <lt8:et>On time</lt8:et>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Harold Wood</lt8:locationName>
+                           <lt8:crs>HRO</lt8:crs>
+                           <lt8:st>20:15</lt8:st>
+                           <lt8:et>On time</lt8:et>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Brentwood</lt8:locationName>
+                           <lt8:crs>BRE</lt8:crs>
+                           <lt8:st>20:19</lt8:st>
+                           <lt8:et>On time</lt8:et>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Shenfield</lt8:locationName>
+                           <lt8:crs>SNF</lt8:crs>
+                           <lt8:st>20:25</lt8:st>
+                           <lt8:et>On time</lt8:et>
+                        </lt8:callingPoint>
+                     </lt8:callingPointList>
+                  </lt8:subsequentCallingPoints>
+               </lt8:service>
+               <lt8:service>
+                  <lt4:std>19:30</lt4:std>
+                  <lt4:etd>On time</lt4:etd>
+                  <lt4:operator>Great Western Railway</lt4:operator>
+                  <lt4:operatorCode>GW</lt4:operatorCode>
+                  <lt4:serviceType>train</lt4:serviceType>
+                  <lt4:serviceID>4848392PADTON__</lt4:serviceID>
+                  <lt5:rsid>GW436300</lt5:rsid>
+                  <lt5:origin>
+                     <lt4:location>
+                        <lt4:locationName>London Paddington</lt4:locationName>
+                        <lt4:crs>PAD</lt4:crs>
+                     </lt4:location>
+                  </lt5:origin>
+                  <lt5:destination>
+                     <lt4:location>
+                        <lt4:locationName>Weston-super-Mare</lt4:locationName>
+                        <lt4:crs>WSM</lt4:crs>
+                     </lt4:location>
+                  </lt5:destination>
+                  <lt8:subsequentCallingPoints>
+                     <lt8:callingPointList>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Reading</lt8:locationName>
+                           <lt8:crs>RDG</lt8:crs>
+                           <lt8:st>19:53</lt8:st>
+                           <lt8:et>On time</lt8:et>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Swindon</lt8:locationName>
+                           <lt8:crs>SWI</lt8:crs>
+                           <lt8:st>20:20</lt8:st>
+                           <lt8:et>On time</lt8:et>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Chippenham</lt8:locationName>
+                           <lt8:crs>CPM</lt8:crs>
+                           <lt8:st>20:35</lt8:st>
+                           <lt8:et>On time</lt8:et>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Bath Spa</lt8:locationName>
+                           <lt8:crs>BTH</lt8:crs>
+                           <lt8:st>20:47</lt8:st>
+                           <lt8:et>On time</lt8:et>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Bristol Temple Meads</lt8:locationName>
+                           <lt8:crs>BRI</lt8:crs>
+                           <lt8:st>21:03</lt8:st>
+                           <lt8:et>On time</lt8:et>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Nailsea &amp; Backwell</lt8:locationName>
+                           <lt8:crs>NLS</lt8:crs>
+                           <lt8:st>21:23</lt8:st>
+                           <lt8:et>On time</lt8:et>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Yatton</lt8:locationName>
+                           <lt8:crs>YAT</lt8:crs>
+                           <lt8:st>21:28</lt8:st>
+                           <lt8:et>On time</lt8:et>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Worle</lt8:locationName>
+                           <lt8:crs>WOR</lt8:crs>
+                           <lt8:st>21:34</lt8:st>
+                           <lt8:et>On time</lt8:et>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Weston Milton</lt8:locationName>
+                           <lt8:crs>WNM</lt8:crs>
+                           <lt8:st>21:39</lt8:st>
+                           <lt8:et>On time</lt8:et>
+                        </lt8:callingPoint>
+                        <lt8:callingPoint>
+                           <lt8:locationName>Weston-super-Mare</lt8:locationName>
+                           <lt8:crs>WSM</lt8:crs>
+                           <lt8:st>21:44</lt8:st>
+                           <lt8:et>On time</lt8:et>
+                        </lt8:callingPoint>
+                     </lt8:callingPointList>
+                  </lt8:subsequentCallingPoints>
+               </lt8:service>
+            </lt8:trainServices>
+         </GetStationBoardResult>
+      </GetArrDepBoardWithDetailsResponse>
+   </soap:Body>
+</soap:Envelope>

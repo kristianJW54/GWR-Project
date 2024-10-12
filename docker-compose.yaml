@@ -1,0 +1,16 @@
+services:
+  redis:
+    image: redis/redis-stack-server:latest # Use the Redis Stack image
+    ports:
+      - "6379:6379"
+
+  polling-service:
+    build:
+      context: .
+      dockerfile: polling-service/Dockerfile
+    env_file:
+      - polling-service/.env
+    depends_on:
+      - redis
+    ports:
+      - "8080:8080"

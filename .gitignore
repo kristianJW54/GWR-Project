@@ -1,0 +1,8 @@
+# .gitignore
+/polling-service/.env
+/polling-service/outputs/sample_output.xml
+/polling-service/test.env
+
+token.txt
+sample_output.txt
+
