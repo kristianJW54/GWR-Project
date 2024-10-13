@@ -1,40 +1,36 @@
 package sse
 
 import (
+	"fmt"
 	"github.com/redis/go-redis/v9"
 	"net/http"
 	"sync"
 	"time"
 )
 
-// SSEServer struct manages client connections and broadcasts messages to those clients using SSE.
+// EventServer struct manages client connections and broadcasts messages to those clients using SSE.
 // Channels are used to handle client registration, de-registration and broadcasting messages concurrently
-type SSEServer struct {
+type EventServer struct {
 	NewClientChannel     chan chan []byte //Using chan chan - as the chan []byte receives another chan (chan []byte)
 	ClosingClientChannel chan chan []byte //Using chan chan - as the chan []byte receives another chan (chan []byte)
 	broadcast            chan []byte
 	clients              map[chan []byte]struct{} // A map that keeps track of all connected clients - empty struct{} used to indicate presence without allocating memory
-	RedisClient          *redis.Client
+	RedisClient          *redis.Client            //TODO build interface or DI to enable mocking of client?
 	mu                   sync.Mutex
 }
 
-func NewRedisClient(options *redis.Options) *redis.Client {
-	rc := redis.NewClient(options)
-	return rc
-}
-
-func NewSSEServer(redisClient *redis.Client) *SSEServer {
-	return &SSEServer{
+func NewSSEServer(redisClient *RedisClient) *EventServer {
+	return &EventServer{
 		NewClientChannel:     make(chan chan []byte),
 		ClosingClientChannel: make(chan chan []byte),
 		broadcast:            make(chan []byte),
 		clients:              make(map[chan []byte]struct{}),
-		RedisClient:          redisClient,
+		RedisClient:          redisClient.Client,
 	}
 }
 
 // Start is the main loop of the SSEServer
-func (sseServer *SSEServer) Start() {
+func (sseServer *EventServer) Start() {
 	for {
 		select {
 		case client := <-sseServer.NewClientChannel:
@@ -60,7 +56,7 @@ func (sseServer *SSEServer) Start() {
 	}
 }
 
-func (sseServer *SSEServer) handleClientConnection(w http.ResponseWriter, req *http.Request) {
+func (sseServer *EventServer) handleClientConnection(w http.ResponseWriter, req *http.Request) {
 	flusher, ok := w.(http.Flusher)
 
 	if !ok {
@@ -82,7 +78,6 @@ func (sseServer *SSEServer) handleClientConnection(w http.ResponseWriter, req *h
 	sseServer.NewClientChannel <- messageChan
 
 	keepAlive := time.NewTicker(30 * time.Second)
-	keepAliveMsg := ":keepalive\n"
 	notify := req.Context().Done()
 
 	go func() {
@@ -97,4 +92,23 @@ func (sseServer *SSEServer) handleClientConnection(w http.ResponseWriter, req *h
 
 	// Redis Pub/Sub logic below
 
+	//TODO redis implementation here will need to be an interface for DI and mocking and testing
+	//TODO think about context and scope for this
+
+	//TODO Extract channel name from URL endpoint
+	// run checks to ensure it is a channel
+
+	//TODO use channel to run redis subscribe function
+	// have checks inside to ensure a successful subscription to avoid blocks
+
+	for {
+		select {
+		case <-keepAlive.C:
+			fmt.Fprintf(w, ":keepalive\n\n")
+			flusher.Flush()
+		case message := <-messageChan:
+			fmt.Fprintf(w, "message: %s\n\n", message)
+			flusher.Flush()
+		}
+	}
 }
