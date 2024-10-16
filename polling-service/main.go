@@ -16,7 +16,7 @@ import (
 
 func init() {
 	// Specify the path to the .env file
-	if err := godotenv.Load("polling-service/.env"); err != nil {
+	if err := godotenv.Load(".env"); err != nil {
 		log.Print("godotenv.Load could not find env file - if using docker ignore this error")
 	}
 }
@@ -64,7 +64,7 @@ func main() {
 		Stations: stations,
 	}
 
-	pm := service2.NewPollMonitor(10, 5*time.Minute, 30*time.Second)
+	pm := service2.NewPollMonitor(5000, 60*time.Minute, 60*time.Second)
 
 	pc := service2.InitPollConfig(logger, ps, pm, requester)
 

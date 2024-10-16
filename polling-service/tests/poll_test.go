@@ -1,11 +1,11 @@
 package tests
 
 import (
-	"GWR_Project/cmd/polling-service/pkg/models"
-	"GWR_Project/cmd/polling-service/service"
 	"context"
 	"errors"
 	"fmt"
+	"polling-service/pkg/models"
+	"polling-service/service"
 	"sync"
 	"testing"
 	"time"

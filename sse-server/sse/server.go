@@ -1,9 +1,11 @@
 package sse
 
 import (
+	"context"
 	"fmt"
-	"github.com/redis/go-redis/v9"
+	"log"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 )
@@ -15,17 +17,17 @@ type EventServer struct {
 	ClosingClientChannel chan chan []byte //Using chan chan - as the chan []byte receives another chan (chan []byte)
 	broadcast            chan []byte
 	clients              map[chan []byte]struct{} // A map that keeps track of all connected clients - empty struct{} used to indicate presence without allocating memory
-	RedisClient          *redis.Client            //TODO build interface or DI to enable mocking of client?
+	RedisClient          RedisSubscriber
 	mu                   sync.Mutex
 }
 
-func NewSSEServer(redisClient *RedisClient) *EventServer {
+func NewSSEServer(redisClient RedisSubscriber) *EventServer {
 	return &EventServer{
 		NewClientChannel:     make(chan chan []byte),
 		ClosingClientChannel: make(chan chan []byte),
 		broadcast:            make(chan []byte),
 		clients:              make(map[chan []byte]struct{}),
-		RedisClient:          redisClient.Client,
+		RedisClient:          redisClient,
 	}
 }
 
@@ -82,6 +84,7 @@ func (sseServer *EventServer) handleClientConnection(w http.ResponseWriter, req 
 
 	go func() {
 		<-notify
+		log.Println("Client connection closed")
 		sseServer.ClosingClientChannel <- messageChan
 		keepAlive.Stop()
 	}()
@@ -92,14 +95,18 @@ func (sseServer *EventServer) handleClientConnection(w http.ResponseWriter, req 
 
 	// Redis Pub/Sub logic below
 
-	//TODO redis implementation here will need to be an interface for DI and mocking and testing
-	//TODO think about context and scope for this
+	ctx, cancel := context.WithCancel(req.Context())
+	defer cancel()
 
-	//TODO Extract channel name from URL endpoint
-	// run checks to ensure it is a channel
+	// Handle pattern match for channels
+	channel := strings.TrimPrefix(req.URL.Path, "/events/")
+	if channel == "" {
+		channel = "*"
+	} else {
+		channel = fmt.Sprintf("%s.*", channel)
+	}
 
-	//TODO use channel to run redis subscribe function
-	// have checks inside to ensure a successful subscription to avoid blocks
+	go sseServer.RedisClient.RedisSubscriber(ctx, channel, messageChan)
 
 	for {
 		select {
