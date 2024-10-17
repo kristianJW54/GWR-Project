@@ -2,120 +2,67 @@ package sse
 
 import (
 	"context"
-	"fmt"
 	"log"
-	"net/http"
-	"strings"
 	"sync"
-	"time"
 )
 
-// EventServer struct manages client connections and broadcasts messages to those clients using SSE.
-// Channels are used to handle client registration, de-registration and broadcasting messages concurrently
 type EventServer struct {
-	NewClientChannel     chan chan []byte //Using chan chan - as the chan []byte receives another chan (chan []byte)
-	ClosingClientChannel chan chan []byte //Using chan chan - as the chan []byte receives another chan (chan []byte)
-	broadcast            chan []byte
-	clients              map[chan []byte]struct{} // A map that keeps track of all connected clients - empty struct{} used to indicate presence without allocating memory
-	RedisClient          RedisSubscriber
-	mu                   sync.Mutex
+	broadcast     chan []byte
+	context       context.Context
+	cancel        context.CancelFunc
+	ConnectClient chan chan []byte
+	CloseClient   chan chan []byte
+	clients       map[chan []byte]struct{} // Map to keep track of connected clients
+	sync          sync.Mutex
 }
 
-func NewSSEServer(redisClient RedisSubscriber) *EventServer {
+func NewSSEServer(parentCtx context.Context) *EventServer {
+	// Create a cancellable context derived from the parent context
+	ctx, cancel := context.WithCancel(parentCtx)
+
 	return &EventServer{
-		NewClientChannel:     make(chan chan []byte),
-		ClosingClientChannel: make(chan chan []byte),
-		broadcast:            make(chan []byte),
-		clients:              make(map[chan []byte]struct{}),
-		RedisClient:          redisClient,
+		broadcast:     make(chan []byte),
+		context:       ctx,
+		cancel:        cancel, // Store the cancel function to stop the server later
+		ConnectClient: make(chan chan []byte),
+		CloseClient:   make(chan chan []byte),
+		clients:       make(map[chan []byte]struct{}),
 	}
 }
 
-// Start is the main loop of the SSEServer
-func (sseServer *EventServer) Start() {
+func (sseServer *EventServer) Run() {
 	for {
 		select {
-		case client := <-sseServer.NewClientChannel:
-			sseServer.mu.Lock()
-			sseServer.clients[client] = struct{}{}
-			sseServer.mu.Unlock()
+		case <-sseServer.context.Done():
+			log.Println("stopping sse server")
+			for client := range sseServer.clients {
+				log.Println("closing client: ", client)
+				close(client)
+				delete(sseServer.clients, client)
+			}
+			return
 
-		case client := <-sseServer.ClosingClientChannel:
-			sseServer.mu.Lock()
-			delete(sseServer.clients, client)
-			sseServer.mu.Unlock()
+		case clientConnection := <-sseServer.ConnectClient:
+			sseServer.sync.Lock()
+			log.Println("client connected")
+			sseServer.clients[clientConnection] = struct{}{}
+			sseServer.sync.Unlock()
+
+		case clientDisconnect := <-sseServer.CloseClient:
+			sseServer.sync.Lock()
+			log.Println("client disconnected")
+			delete(sseServer.clients, clientDisconnect)
+			sseServer.sync.Unlock()
 
 		case message := <-sseServer.broadcast:
-			for client := range sseServer.clients {
-				select {
-				case client <- message: // Publish ...?
-				default:
-					close(client)
-					delete(sseServer.clients, client)
-				}
+			for clientConnection := range sseServer.clients {
+				log.Println("client:", clientConnection)
+				log.Println("broadcast:", string(message))
 			}
 		}
 	}
 }
 
-func (sseServer *EventServer) handleClientConnection(w http.ResponseWriter, req *http.Request) {
-	flusher, ok := w.(http.Flusher)
-
-	if !ok {
-		http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
-		return
-	}
-
-	// Can insert an interface which activates these methods
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache")
-	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("X-Accel-Buffering", "no")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
-
-	messageChan := make(chan []byte)
-
-	// Signalling the server of a new client connection
-	sseServer.NewClientChannel <- messageChan
-
-	keepAlive := time.NewTicker(30 * time.Second)
-	notify := req.Context().Done()
-
-	go func() {
-		<-notify
-		log.Println("Client connection closed")
-		sseServer.ClosingClientChannel <- messageChan
-		keepAlive.Stop()
-	}()
-
-	defer func() {
-		sseServer.ClosingClientChannel <- messageChan
-	}()
-
-	// Redis Pub/Sub logic below
-
-	ctx, cancel := context.WithCancel(req.Context())
-	defer cancel()
-
-	// Handle pattern match for channels
-	channel := strings.TrimPrefix(req.URL.Path, "/events/")
-	if channel == "" {
-		channel = "*"
-	} else {
-		channel = fmt.Sprintf("%s.*", channel)
-	}
-
-	go sseServer.RedisClient.RedisSubscriber(ctx, channel, messageChan)
-
-	for {
-		select {
-		case <-keepAlive.C:
-			fmt.Fprintf(w, ":keepalive\n\n")
-			flusher.Flush()
-		case message := <-messageChan:
-			fmt.Fprintf(w, "message: %s\n\n", message)
-			flusher.Flush()
-		}
-	}
+func (sseServer *EventServer) Stop() {
+	sseServer.cancel()
 }
