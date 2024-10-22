@@ -18,36 +18,39 @@ import (
 // Clients receive messages over their individual channels, and the server uses the HTTP connection
 // (via http.ResponseWriter) to push data to them over the established SSE connection.
 type EventServer struct {
-	broadcast     chan []byte
+	//broadcast     chan []byte
 	context       context.Context
 	cancel        context.CancelFunc
 	ConnectClient chan chan []byte
 	CloseClient   chan chan []byte
 	clients       map[chan []byte]struct{} // Map to keep track of connected clients
 	sync          sync.Mutex
+	subscriber    RedisSubscriber
 }
 
-func NewSSEServer(parentCtx context.Context) *EventServer {
+func NewSSEServer(parentCtx context.Context, rs RedisSubscriber) *EventServer {
 	// Create a cancellable context derived from the parent context
 	ctx, cancel := context.WithCancel(parentCtx)
 
 	return &EventServer{
-		broadcast:     make(chan []byte),
+		//broadcast:     make(chan []byte),
 		context:       ctx,
 		cancel:        cancel, // Store the cancel function to stop the server later
 		ConnectClient: make(chan chan []byte),
 		CloseClient:   make(chan chan []byte),
 		clients:       make(map[chan []byte]struct{}),
+		subscriber:    rs,
 	}
 }
 
 func (sseServer *EventServer) Run() {
+	log.Println("Started server")
 	for {
 		select {
 		case <-sseServer.context.Done():
-			log.Println("stopping sse server")
+			log.Println("Stopping SSE server")
 			for client := range sseServer.clients {
-				log.Println("closing client: ", client)
+				log.Println("Closing client: ", client)
 				close(client)
 				delete(sseServer.clients, client)
 			}
@@ -55,21 +58,17 @@ func (sseServer *EventServer) Run() {
 
 		case clientConnection := <-sseServer.ConnectClient:
 			sseServer.sync.Lock()
-			log.Println("client connected")
+			log.Println("Client connected")
 			sseServer.clients[clientConnection] = struct{}{}
 			sseServer.sync.Unlock()
 
+			go sseServer.subscriber.RedisSubscriber(sseServer.context, "*", clientConnection)
+
 		case clientDisconnect := <-sseServer.CloseClient:
 			sseServer.sync.Lock()
-			log.Println("client disconnected")
+			log.Println("Client disconnected")
 			delete(sseServer.clients, clientDisconnect)
 			sseServer.sync.Unlock()
-
-		case message := <-sseServer.broadcast:
-			for clientConnection := range sseServer.clients {
-				log.Println("client:", clientConnection)
-				log.Println("broadcast:", string(message))
-			}
 		}
 	}
 }
@@ -118,11 +117,6 @@ func (sseServer *EventServer) HandleConnection(w http.ResponseWriter, req *http.
 		}
 	}()
 
-	//TODO add dependency injected data stream function for subscribed channel messages
-
-	// Go function for handling message data stream
-	//go handleSubscriber(sseServer.context, "nothing", Subscriber, messageChan)
-
 	// Loop to handle sending messages or keep-alive signals
 	for {
 		select {
@@ -131,6 +125,7 @@ func (sseServer *EventServer) HandleConnection(w http.ResponseWriter, req *http.
 				return
 			}
 			_, err := fmt.Fprintf(w, "data: %s\n\n", msg)
+			log.Printf("broadcast: %s\n", msg)
 			if err != nil {
 				log.Printf("error writing messeage: %v", err)
 				return
@@ -145,25 +140,17 @@ func (sseServer *EventServer) HandleConnection(w http.ResponseWriter, req *http.
 			}
 			flusher.Flush()
 		case <-serverNotify:
-			log.Println("beginning graceful shutdown")
-			for {
-				select {
-				case msg, ok := <-message:
-					if !ok {
-						log.Println("message channel closed")
-						return
-					}
-					_, err := fmt.Fprintf(w, "data: %s\n\n", msg)
-					if err != nil {
-						log.Printf("error writing messeage: %v", err)
-						return
-					}
-					flusher.Flush()
-				default:
-					log.Println("no more messages - buffer cleared")
+			log.Println("Beginning graceful shutdown")
+			for msg := range message {
+				// Handle remaining messages
+				if _, err := fmt.Fprintf(w, "data: %s\n\n", msg); err != nil {
+					log.Printf("Error writing message: %v", err)
 					return
 				}
+				flusher.Flush()
 			}
+			log.Println("No more messages - buffer cleared")
+			return
 		}
 	}
 

@@ -39,27 +39,19 @@ type RedisSubscriber interface {
 }
 
 func (rc *RedisClient) RedisSubscriber(ctx context.Context, channel string, messageChan chan []byte) {
-	// Subscribe to the Redis channel
 	pubsub := rc.Client.PSubscribe(ctx, channel)
 	ch := pubsub.Channel() // Get the Go channel for messages
+	rc.logger.Info("subscribed on channel", slog.String("channel", channel))
 
-	// Listen for messages on the Redis channel and forward them to the SSE messageChan
 	go func() {
 		for msg := range ch {
-			// Forward the Redis message to the SSE message channel
-			messageChan <- []byte(msg.Payload)
+			select {
+			case messageChan <- []byte(msg.Payload): // Forward the Redis message to the SSE message channel
+				rc.logger.Info("Received message: ", slog.String("message", msg.Payload))
+			case <-ctx.Done():
+				rc.logger.Info("Context done, stopping Redis subscriber")
+				return
+			}
 		}
 	}()
-
-	// Handle context cancellation to ensure graceful unsubscription
-	<-ctx.Done()
-
-	// Unsubscribe and close the Pub/Sub connection when the context is canceled
-	if err := pubsub.Unsubscribe(ctx, channel); err != nil {
-		rc.logger.Error("failed to unsubscribe", slog.String("channel", channel), slog.String("error", err.Error()))
-	}
-	err := pubsub.Close()
-	if err != nil {
-		return
-	} // Ensure the Pub/Sub connection is closed
 }

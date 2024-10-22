@@ -29,6 +29,9 @@ Each route is checked before being cached in Redis, any changes in current cache
 
 A polling service then polls the NationalRail data at defined intervals processing, caching and publishing to keep a near realtime view on every GWR train active
 
+The polling service is then containerised in docker and run separately alongside Redis. A custom SSE Server is run as its own service which tracks client connections
+and broadcasts subscribed messages to the clients and their respective channels. The SSE Server is also containerised and run separately for scalability and load.
+
 ---
 
 ### Goals of the Project
@@ -48,7 +51,7 @@ The Main goals of the project are to:
 
 **! Coming soon !**
 
-Once this project is complete, a detailed REST API and HOWTO will be published in order for others to utilize data
+Once this project is complete, a detailed REST API and HOWTO will be published in order for others to utilize the data
 and build awesome frontends
 
 ---

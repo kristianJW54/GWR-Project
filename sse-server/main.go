@@ -2,10 +2,13 @@ package main
 
 import (
 	"context"
-	"github.com/redis/go-redis/v9"
+	"fmt"
+	"log"
 	"log/slog"
+	"net/http"
 	"os"
 	"sse-server/sse"
+	"time"
 )
 
 func sseLogger() *slog.Logger {
@@ -17,27 +20,47 @@ func sseLogger() *slog.Logger {
 	return logger
 }
 
+type DataStream struct {
+	input chan string
+}
+
+func (ds *DataStream) RedisSubscriber(ctx context.Context, channel string, messageChan chan []byte) {
+	go func() {
+		// Send 5 messages to simulate Redis messages
+		for i := 0; i < 5; i++ {
+			select {
+			case <-ctx.Done():
+				log.Println("Context done, stopping message generation")
+				return
+			default:
+				// Create a test message and send it to the message channel
+				message := fmt.Sprintf("Test message %d", i)
+				messageChan <- []byte(message) // Send to SSE's message channel
+				time.Sleep(1 * time.Second)    // Simulate delay between messages
+			}
+		}
+
+	}()
+}
+
 func main() {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-	opt := &redis.Options{
-		Addr:     "localhost:6379", // Use the service name instead of localhost
-		Password: "",               // No password set
-		DB:       0,
-	}
+	// Initialize the DataStream (mock or real depending on your needs)
+	mc := &DataStream{input: make(chan string)}
 
-	logger := sseLogger()
+	// Create the SSE server
+	server := sse.NewSSEServer(ctx, mc)
 
-	nc, err := sse.NewRedisClient(logger, opt)
+	go server.Run()
+
+	// Correct the handler path
+	http.HandleFunc("/previous", server.HandleConnection)
+
+	// Start the HTTP server
+	err := http.ListenAndServe("localhost:8081", nil) // Consider using port 8080 for local testing
 	if err != nil {
-		panic(err)
+		log.Fatalf("Could not start server: %v", err)
 	}
-
-	// Retrieve the number of keys in the current Redis database
-	keyCount, err := nc.Client.DBSize(context.Background()).Result()
-	if err != nil {
-		logger.Error("failed to retrieve the number of keys", slog.String("error", err.Error()))
-	} else {
-		logger.Info("connected to redis", slog.Int64("key_count", keyCount))
-	}
-
 }
