@@ -81,91 +81,6 @@ func MockRequest(t *testing.T, client *http.Client, url string, sseServer *Event
 	return nil // Return nil if everything was successful
 }
 
-// MockHandler simulates a server that streams data to the client over time
-func (sseServer *EventServer) connection(w http.ResponseWriter, r *http.Request) {
-	// Set headers to mimic SSE
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache")
-	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("X-Accel-Buffering", "no")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
-		return
-	}
-
-	message := make(chan []byte)
-	sseServer.ConnectClient <- message
-
-	//keeping the connection alive with keep-alive protocol
-	keepAliveTicker := time.NewTicker(15 * time.Second)
-	keepAliveMsg := []byte(":keepalive\n\n")
-	notify := r.Context().Done()
-	serverNotify := sseServer.context.Done()
-
-	go func() {
-		select {
-		case <-serverNotify:
-			log.Println("sse server context signalled done - closing connection")
-			sseServer.CloseClient <- message
-			keepAliveTicker.Stop()
-		case <-notify:
-			log.Println("request scope context signalled done - closing connection")
-			sseServer.CloseClient <- message
-			keepAliveTicker.Stop()
-		}
-	}()
-
-	// Loop to handle sending messages or keep-alive signals
-	for {
-		select {
-		case msg, ok := <-message:
-			if !ok {
-				// Message channel closed, exit the loop
-				log.Println("Message channel closed, exiting connection")
-				return
-			}
-			// Write the message to the client
-			_, err := fmt.Fprintf(w, "data: %s\n\n", msg)
-			if err != nil {
-				log.Printf("Error writing message: %v", err)
-				return
-			}
-			flusher.Flush() // Flush immediately to the client
-		case <-keepAliveTicker.C:
-			// Send the keep-alive ping
-			_, err := w.Write(keepAliveMsg)
-			if err != nil {
-				log.Printf("Failed to send keep-alive: %v", err)
-				return
-			}
-			flusher.Flush() // Ensure keep-alive is flushed immediately
-		case <-serverNotify:
-			log.Println("beginning graceful shutdown...")
-			for {
-				select {
-				case msg, ok := <-message:
-					if !ok {
-						log.Println("Message channel empty")
-						return
-					}
-					_, err := fmt.Fprintf(w, "data: %s\n\n", msg)
-					if err != nil {
-						log.Printf("Error writing message: %v", err)
-						return
-					}
-					flusher.Flush()
-				default:
-					log.Println("No more messages, buffer cleared")
-					return
-				}
-			}
-		}
-	}
-
-}
-
 //TODO implement redis like data stream mechanism to test
 
 type DataStream struct {
@@ -174,7 +89,7 @@ type DataStream struct {
 
 // MockDataStream simulates subscribing to a data stream and forwarding messages to the SSE message channel.
 // The 'ctx' represents the request-level context, and when it is done, the subscription and connection are terminated.
-func (ds *DataStream) RedisSubscriber(ctx context.Context, channel string, messageChan chan []byte) {
+func (ds *DataStream) Subscribe(ctx context.Context, channel string, messageChan chan []byte) {
 	log.Println("calling subscriber")
 	go func() {
 		// Send 5 messages to simulate Redis messages

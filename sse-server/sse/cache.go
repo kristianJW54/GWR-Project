@@ -34,11 +34,11 @@ func NewRedisClient(logger *slog.Logger, options *redis.Options) (*RedisClient, 
 // Subscribing logic
 //===========================================
 
-type RedisSubscriber interface {
-	RedisSubscriber(ctx context.Context, channel string, messageChan chan []byte)
+type Subscriber interface {
+	Subscribe(ctx context.Context, channel string, messageChan chan []byte)
 }
 
-func (rc *RedisClient) RedisSubscriber(ctx context.Context, channel string, messageChan chan []byte) {
+func (rc *RedisClient) Subscribe(ctx context.Context, channel string, messageChan chan []byte) {
 	pubsub := rc.Client.PSubscribe(ctx, channel)
 	ch := pubsub.Channel() // Get the Go channel for messages
 	rc.logger.Info("subscribed on channel", slog.String("channel", channel))

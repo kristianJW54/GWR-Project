@@ -4,42 +4,49 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
 	"sync"
 	"time"
 )
 
-//TODO - look at improving the broadcast channel by potentially adding a buffer (dynamic?) or a custom queue mechanism
-// to push into a buffer..?
+// TODO Need to review and look into how to implement the main server for the service - along with routes and hanlders
 
-// EventServer manages Server-Sent Events (SSE) by handling client connections and broadcasting messages.
+type Server struct {
+	server      *http.Server
+	EventServer *EventServer
+	logger      *slog.Logger
+	context     context.Context
+	cancel      context.CancelFunc
+}
+
+// EventServer manages Server-Sent Events (SSE) by handling client connections.
 // Each client is represented by a channel of byte slices in the 'clients' map.
-// When a message is sent to the 'broadcast' channel, it is forwarded to all connected clients.
+// When a client connects a new channel and the connections is added to the map to monitor closures.
 // Clients receive messages over their individual channels, and the server uses the HTTP connection
 // (via http.ResponseWriter) to push data to them over the established SSE connection.
 type EventServer struct {
-	//broadcast     chan []byte
 	context       context.Context
 	cancel        context.CancelFunc
 	ConnectClient chan chan []byte
 	CloseClient   chan chan []byte
 	clients       map[chan []byte]struct{} // Map to keep track of connected clients
 	sync          sync.Mutex
-	subscriber    RedisSubscriber
+	subscriber    Subscriber
+	logger        *slog.Logger
 }
 
-func NewSSEServer(parentCtx context.Context, rs RedisSubscriber) *EventServer {
+func NewSSEServer(parentCtx context.Context, sub Subscriber) *EventServer {
 	// Create a cancellable context derived from the parent context
 	ctx, cancel := context.WithCancel(parentCtx)
 
 	return &EventServer{
-		//broadcast:     make(chan []byte),
 		context:       ctx,
 		cancel:        cancel, // Store the cancel function to stop the server later
 		ConnectClient: make(chan chan []byte),
 		CloseClient:   make(chan chan []byte),
 		clients:       make(map[chan []byte]struct{}),
-		subscriber:    rs,
+		subscriber:    sub,
 	}
 }
 
@@ -62,7 +69,7 @@ func (sseServer *EventServer) Run() {
 			sseServer.clients[clientConnection] = struct{}{}
 			sseServer.sync.Unlock()
 
-			go sseServer.subscriber.RedisSubscriber(sseServer.context, "*", clientConnection)
+			go sseServer.subscriber.Subscribe(sseServer.context, "*", clientConnection)
 
 		case clientDisconnect := <-sseServer.CloseClient:
 			sseServer.sync.Lock()
@@ -140,7 +147,6 @@ func (sseServer *EventServer) HandleConnection(w http.ResponseWriter, req *http.
 			}
 			flusher.Flush()
 		case <-serverNotify:
-			log.Println("Beginning graceful shutdown")
 			for msg := range message {
 				// Handle remaining messages
 				if _, err := fmt.Fprintf(w, "data: %s\n\n", msg); err != nil {

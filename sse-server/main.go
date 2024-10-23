@@ -24,7 +24,7 @@ type DataStream struct {
 	input chan string
 }
 
-func (ds *DataStream) RedisSubscriber(ctx context.Context, channel string, messageChan chan []byte) {
+func (ds *DataStream) Subscribe(ctx context.Context, channel string, messageChan chan []byte) {
 	go func() {
 		// Send 5 messages to simulate Redis messages
 		for i := 0; i < 5; i++ {
@@ -50,8 +50,14 @@ func main() {
 	// Initialize the DataStream (mock or real depending on your needs)
 	mc := &DataStream{input: make(chan string)}
 
+	//logger := sseLogger()
+
 	// Create the SSE server
 	server := sse.NewSSEServer(ctx, mc)
+
+	// TODO include a http server inside the Event Server
+	//TODO build a new listen and server which will start the run function of sse, handle mux routes, logging etc
+	// and call listen and serve on the httpServer
 
 	go server.Run()
 
