@@ -3,6 +3,8 @@
 /polling-service/outputs/sample_output.xml
 /polling-service/test.env
 
+/sse-server/config.yaml
+
 token.txt
 sample_output.txt
 

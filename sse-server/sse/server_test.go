@@ -74,7 +74,7 @@ func MockRequest(t *testing.T, client *http.Client, url string, sseServer *Event
 		}
 
 		message := buf[:n]
-		t.Logf("Received message - sending to client:")
+		t.Logf("Received message - sending to client")
 		t.Logf("%s", message)
 	}
 

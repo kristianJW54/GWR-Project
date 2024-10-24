@@ -10,14 +10,39 @@ import (
 	"time"
 )
 
-// TODO Need to review and look into how to implement the main server for the service - along with routes and hanlders
+type Config struct {
+	ServerAddr string `yaml:"server_addr"`
+	ServerPort string `yaml:"server_port"`
+	AdminToken string `yaml:"admin_token"`
+	// Connection control can be specified here
+}
 
 type Server struct {
-	server      *http.Server
 	EventServer *EventServer
 	logger      *slog.Logger
-	context     context.Context
-	cancel      context.CancelFunc
+	config      *Config
+}
+
+func NewServer(es *EventServer, config *Config, logger *slog.Logger) *Server {
+	return &Server{
+		EventServer: es,
+		logger:      logger,
+		config:      config,
+	}
+}
+
+func ServerHandler(s *Server) http.Handler {
+
+	mux := http.NewServeMux()
+	addRoutes(
+		mux,
+		s.logger,
+		s.config,
+		s.EventServer)
+
+	var handler http.Handler = mux
+	// Can add top level middleware
+	return handler
 }
 
 // EventServer manages Server-Sent Events (SSE) by handling client connections.
@@ -68,8 +93,6 @@ func (sseServer *EventServer) Run() {
 			log.Println("Client connected")
 			sseServer.clients[clientConnection] = struct{}{}
 			sseServer.sync.Unlock()
-
-			go sseServer.subscriber.Subscribe(sseServer.context, "*", clientConnection)
 
 		case clientDisconnect := <-sseServer.CloseClient:
 			sseServer.sync.Lock()
@@ -123,6 +146,11 @@ func (sseServer *EventServer) HandleConnection(w http.ResponseWriter, req *http.
 			keepAliveTicker.Stop()
 		}
 	}()
+
+	clientPathRequested := req.URL.Path
+	log.Println("clientPathRequested: ", clientPathRequested)
+
+	go sseServer.subscriber.Subscribe(sseServer.context, "*", message)
 
 	// Loop to handle sending messages or keep-alive signals
 	for {

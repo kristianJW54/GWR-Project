@@ -7,11 +7,14 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
 	"sse-server/sse"
+	"sync"
+	"syscall"
 	"time"
 )
 
-func sseLogger() *slog.Logger {
+func Logger() *slog.Logger {
 	logHandler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level:     slog.LevelInfo,
 		AddSource: true,
@@ -43,30 +46,76 @@ func (ds *DataStream) Subscribe(ctx context.Context, channel string, messageChan
 	}()
 }
 
+// TODO clean up main function - encapsulate full server lifecycle - context - os.Signals
+// TODO make run() function with error int output which will be called by main
+
 func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// Initialize the DataStream (mock or real depending on your needs)
+	// Initialize the Mock DataStream
 	mc := &DataStream{input: make(chan string)}
 
-	//logger := sseLogger()
+	httpLogger := Logger()
+
+	config := &sse.Config{
+		ServerAddr: "localhost:",
+		ServerPort: "8081",
+		AdminToken: "1234",
+	}
 
 	// Create the SSE server
-	server := sse.NewSSEServer(ctx, mc)
+	sseServer := sse.NewSSEServer(ctx, mc)
 
-	// TODO include a http server inside the Event Server
-	//TODO build a new listen and server which will start the run function of sse, handle mux routes, logging etc
-	// and call listen and serve on the httpServer
+	go sseServer.Run()
 
-	go server.Run()
+	server := sse.NewServer(sseServer, config, httpLogger)
+	srvHandler := sse.ServerHandler(server)
 
-	// Correct the handler path
-	http.HandleFunc("/previous", server.HandleConnection)
-
-	// Start the HTTP server
-	err := http.ListenAndServe("localhost:8081", nil) // Consider using port 8080 for local testing
-	if err != nil {
-		log.Fatalf("Could not start server: %v", err)
+	httpServer := &http.Server{
+		Addr:    "localhost:" + config.ServerPort,
+		Handler: srvHandler,
 	}
+
+	go func() {
+		log.Printf("Listening on %s\n", httpServer.Addr)
+		if err := httpServer.ListenAndServe(); err != nil {
+			log.Println("ListenAndServe error:", err)
+		}
+	}()
+
+	// Set up a signal channel to listen for OS signals
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
+
+	// Wait for cancellation or OS signal to initiate shutdown
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+
+		// Wait for either context cancellation or an OS signal
+		select {
+		case <-ctx.Done():
+			// Context was canceled
+			log.Println("Context canceled, initiating shutdown...")
+		case <-signalChan:
+			// Received an OS signal
+			log.Println("Received shutdown signal, initiating shutdown...")
+			cancel() // Cancel the context to signal shutdown
+		}
+
+		// Create a shutdown context with a timeout
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer shutdownCancel()
+
+		// Shut down the HTTP server
+		if err := httpServer.Shutdown(shutdownCtx); err != nil {
+			fmt.Fprintf(os.Stderr, "Error shutting down HTTP server: %s\n", err)
+		}
+	}()
+
+	// Wait for all goroutines to finish
+	wg.Wait()
+	log.Println("Server shutdown complete.")
 }
