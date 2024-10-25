@@ -2,13 +2,15 @@ package sse
 
 import (
 	"context"
+	"fmt"
 	"github.com/redis/go-redis/v9"
+	"log"
 	"log/slog"
+	"time"
 )
 
 type RedisClient struct {
 	Client *redis.Client
-	subMap map[string]*redis.PubSub
 	logger *slog.Logger
 }
 
@@ -53,5 +55,32 @@ func (rc *RedisClient) Subscribe(ctx context.Context, channel string, messageCha
 				return
 			}
 		}
+	}()
+}
+
+//========================================================
+// Mock Data Stream For Testing and Running with CLI Flags
+//========================================================
+
+type DataStream struct {
+	Input chan string
+}
+
+func (ds *DataStream) Subscribe(ctx context.Context, channel string, messageChan chan []byte) {
+	go func() {
+		// Send 5 messages to simulate Redis messages
+		for i := 0; i < 5; i++ {
+			select {
+			case <-ctx.Done():
+				log.Println("Context done, stopping message generation")
+				return
+			default:
+				// Create a test message and send it to the message channel
+				message := fmt.Sprintf("Test message %d", i)
+				messageChan <- []byte(message) // Send to SSE's message channel
+				time.Sleep(1 * time.Second)    // Simulate delay between messages
+			}
+		}
+
 	}()
 }

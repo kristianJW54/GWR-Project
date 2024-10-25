@@ -12,8 +12,6 @@ import (
 	"time"
 )
 
-//TODO use http test to create test server and mock request through the sse server
-
 func TestSSEServer(t *testing.T) {
 	testContext, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()

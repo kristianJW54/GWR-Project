@@ -6,16 +6,10 @@ import (
 	"log"
 	"log/slog"
 	"net/http"
+	"os"
 	"sync"
 	"time"
 )
-
-type Config struct {
-	ServerAddr string `yaml:"server_addr"`
-	ServerPort string `yaml:"server_port"`
-	AdminToken string `yaml:"admin_token"`
-	// Connection control can be specified here
-}
 
 type Server struct {
 	EventServer *EventServer
@@ -105,6 +99,38 @@ func (sseServer *EventServer) Run() {
 
 func (sseServer *EventServer) Stop() {
 	sseServer.cancel()
+}
+
+//================================================
+// Shutdown Logic
+//================================================
+
+func GracefulShutdown(ctx context.Context, cancel context.CancelFunc, wg *sync.WaitGroup, signalChan chan os.Signal, logger *slog.Logger, srv *http.Server) error {
+	defer wg.Done() // Ensure WaitGroup is decremented exactly once here
+
+	select {
+	case <-ctx.Done():
+		logger.Info("context canceled - initiating graceful shutdown")
+	case <-signalChan:
+		logger.Info("received shutdown signal - initiating graceful shutdown")
+		cancel() // Cancel main context to propagate shutdown
+		// Drain remaining signals if multiple were sent
+		for len(signalChan) > 0 {
+			<-signalChan
+		}
+	}
+	// Create a shutdown context with a timeout for graceful shutdown
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer shutdownCancel()
+
+	// Attempt graceful shutdown
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		logger.Error("error shutting down HTTP server:", err)
+		return err
+	}
+	// Successful shutdown
+	logger.Info("HTTP server shutdown completed successfully")
+	return nil
 }
 
 //================================================

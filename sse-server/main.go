@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"log/slog"
 	"net/http"
@@ -23,27 +24,29 @@ func Logger() *slog.Logger {
 	return logger
 }
 
-type DataStream struct {
-	input chan string
-}
+//TODO finish building run function with CLI flag for mock or real data streaming
+//TODO create tests and use TDD to make sure it works
 
-func (ds *DataStream) Subscribe(ctx context.Context, channel string, messageChan chan []byte) {
-	go func() {
-		// Send 5 messages to simulate Redis messages
-		for i := 0; i < 5; i++ {
-			select {
-			case <-ctx.Done():
-				log.Println("Context done, stopping message generation")
-				return
-			default:
-				// Create a test message and send it to the message channel
-				message := fmt.Sprintf("Test message %d", i)
-				messageChan <- []byte(message) // Send to SSE's message channel
-				time.Sleep(1 * time.Second)    // Simulate delay between messages
-			}
-		}
+func run(ctx context.Context, w io.Writer, args []string) error {
+	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt)
+	defer cancel()
 
-	}()
+	srvLogger := Logger()
+
+	var configPath string
+	if len(args) < 1 {
+		srvLogger.Warn("no arguments specified - using default config path")
+		configPath = "config.yaml"
+	} else {
+		configPath = args[0]
+	}
+
+	// Load configuration from file or environment
+	config, err := sse.LoadConfig(configPath)
+	if err != nil {
+		return fmt.Errorf("failed to load config: %w", err)
+	}
+
 }
 
 // TODO clean up main function - encapsulate full server lifecycle - context - os.Signals
@@ -54,7 +57,7 @@ func main() {
 	defer cancel()
 
 	// Initialize the Mock DataStream
-	mc := &DataStream{input: make(chan string)}
+	mc := &sse.DataStream{Input: make(chan string)}
 
 	httpLogger := Logger()
 
@@ -118,4 +121,5 @@ func main() {
 	// Wait for all goroutines to finish
 	wg.Wait()
 	log.Println("Server shutdown complete.")
+
 }
