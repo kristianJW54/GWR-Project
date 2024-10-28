@@ -55,7 +55,7 @@ type EventServer struct {
 	logger        *slog.Logger
 }
 
-func NewSSEServer(parentCtx context.Context, sub Subscriber) *EventServer {
+func NewSSEServer(parentCtx context.Context, sub Subscriber, logger *slog.Logger) *EventServer {
 	// Create a cancellable context derived from the parent context
 	ctx, cancel := context.WithCancel(parentCtx)
 
@@ -66,6 +66,7 @@ func NewSSEServer(parentCtx context.Context, sub Subscriber) *EventServer {
 		CloseClient:   make(chan chan []byte),
 		clients:       make(map[chan []byte]struct{}),
 		subscriber:    sub,
+		logger:        logger,
 	}
 }
 
@@ -76,7 +77,7 @@ func (sseServer *EventServer) Run() {
 		case <-sseServer.context.Done():
 			log.Println("Stopping SSE server")
 			for client := range sseServer.clients {
-				log.Println("Closing client: ", client)
+				sseServer.logger.Debug("closing client", "client", client)
 				close(client)
 				delete(sseServer.clients, client)
 			}
@@ -84,13 +85,13 @@ func (sseServer *EventServer) Run() {
 
 		case clientConnection := <-sseServer.ConnectClient:
 			sseServer.sync.Lock()
-			log.Println("Client connected")
 			sseServer.clients[clientConnection] = struct{}{}
+			sseServer.logger.Debug("connecting client", "client", sseServer.clients[clientConnection])
 			sseServer.sync.Unlock()
 
 		case clientDisconnect := <-sseServer.CloseClient:
 			sseServer.sync.Lock()
-			log.Println("Client disconnected")
+			sseServer.logger.Debug("closing client", "client", sseServer.clients[clientDisconnect])
 			delete(sseServer.clients, clientDisconnect)
 			sseServer.sync.Unlock()
 		}
@@ -105,30 +106,38 @@ func (sseServer *EventServer) Stop() {
 // Shutdown Logic
 //================================================
 
-func GracefulShutdown(ctx context.Context, cancel context.CancelFunc, wg *sync.WaitGroup, signalChan chan os.Signal, logger *slog.Logger, srv *http.Server) error {
-	defer wg.Done() // Ensure WaitGroup is decremented exactly once here
+func GracefulShutdown(
+	ctx context.Context,
+	cancel context.CancelFunc,
+	wg *sync.WaitGroup,
+	signalChan chan os.Signal,
+	logger *slog.Logger,
+	srv *http.Server,
+) error {
+	defer wg.Done() // Ensure WaitGroup is decremented once
 
 	select {
 	case <-ctx.Done():
-		logger.Info("context canceled - initiating graceful shutdown")
+		logger.Info("Context canceled - initiating graceful shutdown")
 	case <-signalChan:
-		logger.Info("received shutdown signal - initiating graceful shutdown")
+		logger.Info("Received shutdown signal - initiating graceful shutdown")
 		cancel() // Cancel main context to propagate shutdown
-		// Drain remaining signals if multiple were sent
+		// Drain remaining signals if any
 		for len(signalChan) > 0 {
 			<-signalChan
 		}
 	}
+
 	// Create a shutdown context with a timeout for graceful shutdown
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer shutdownCancel()
 
 	// Attempt graceful shutdown
 	if err := srv.Shutdown(shutdownCtx); err != nil {
-		logger.Error("error shutting down HTTP server:", err)
+		logger.Error("Error shutting down HTTP server:", "err", err)
 		return err
 	}
-	// Successful shutdown
+
 	logger.Info("HTTP server shutdown completed successfully")
 	return nil
 }
@@ -163,18 +172,18 @@ func (sseServer *EventServer) HandleConnection(w http.ResponseWriter, req *http.
 	go func() {
 		select {
 		case <-serverNotify:
-			log.Println("sse server context signalled done - closing connection")
+			sseServer.logger.Debug("sse server context signalled done - closing connection")
 			sseServer.CloseClient <- message
 			keepAliveTicker.Stop()
 		case <-notify:
-			log.Println("request scope context signalled done - closing connection")
+			sseServer.logger.Debug("request scope context signalled done - closing connection")
 			sseServer.CloseClient <- message
 			keepAliveTicker.Stop()
 		}
 	}()
 
 	clientPathRequested := req.URL.Path
-	log.Println("clientPathRequested: ", clientPathRequested)
+	sseServer.logger.Debug("client path requested: ", slog.String("path", clientPathRequested))
 
 	go sseServer.subscriber.Subscribe(sseServer.context, "*", message)
 
@@ -186,7 +195,7 @@ func (sseServer *EventServer) HandleConnection(w http.ResponseWriter, req *http.
 				return
 			}
 			_, err := fmt.Fprintf(w, "data: %s\n\n", msg)
-			log.Printf("broadcast: %s\n", msg)
+			sseServer.logger.Debug("broadcast: ", slog.String("data", string(msg)))
 			if err != nil {
 				log.Printf("error writing messeage: %v", err)
 				return
@@ -196,7 +205,7 @@ func (sseServer *EventServer) HandleConnection(w http.ResponseWriter, req *http.
 			// Send the keep-alive ping
 			_, err := w.Write(keepAliveMsg)
 			if err != nil {
-				log.Printf("error writing keepalive: %v", err)
+				sseServer.logger.Debug("error writing keepalive", "err", err)
 				return
 			}
 			flusher.Flush()
@@ -204,12 +213,12 @@ func (sseServer *EventServer) HandleConnection(w http.ResponseWriter, req *http.
 			for msg := range message {
 				// Handle remaining messages
 				if _, err := fmt.Fprintf(w, "data: %s\n\n", msg); err != nil {
-					log.Printf("Error writing message: %v", err)
+					sseServer.logger.Debug("error writing server message", "err", err)
 					return
 				}
 				flusher.Flush()
 			}
-			log.Println("No more messages - buffer cleared")
+			sseServer.logger.Debug("no more messages - buffer cleared")
 			return
 		}
 	}

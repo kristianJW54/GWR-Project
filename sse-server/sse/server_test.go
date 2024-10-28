@@ -3,22 +3,39 @@ package sse
 import (
 	"context"
 	"fmt"
+	"github.com/redis/go-redis/v9"
 	"io"
 	"log"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"sync"
 	"testing"
 	"time"
 )
 
+// TODO Check run function for main with different args
+// TODO Check go-routine and no leakage
+// TODO Check high load
+// TODO BenchMark
+// TODO Test with live services
+
 func TestSSEServer(t *testing.T) {
 	testContext, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 
-	mockRedis := &DataStream{input: make(chan string)}
+	mockRedis := &DataStream{Input: make(chan string)}
 
-	sse := NewSSEServer(testContext, mockRedis)
+	// Initialize logger
+	logHandler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level:     slog.LevelInfo,
+		AddSource: true,
+	})
+
+	logger := slog.New(logHandler)
+
+	sse := NewSSEServer(testContext, mockRedis, logger)
 
 	go sse.Run()
 
@@ -34,7 +51,7 @@ func TestSSEServer(t *testing.T) {
 		clientWaitGroup.Add(1)
 		go func(clientID int) {
 			defer clientWaitGroup.Done()
-			err := MockRequest(t, &http.Client{}, testServer.URL, sse)
+			err := MockRequest(t, &http.Client{}, testServer.URL)
 			if err != nil {
 				t.Errorf("Client %d: Failed to make request: %v", clientID, err)
 			}
@@ -48,7 +65,65 @@ func TestSSEServer(t *testing.T) {
 	log.Println("Server closed successfully")
 }
 
-func MockRequest(t *testing.T, client *http.Client, url string, sseServer *EventServer) error {
+func TestSSELiveRedis(t *testing.T) {
+	testContext, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	// Initialize logger
+	logHandler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level:     slog.LevelInfo,
+		AddSource: true,
+	})
+
+	logger := slog.New(logHandler)
+
+	opt := &redis.Options{
+		Addr:     "localhost:6379", // Use the service name instead of localhost
+		Password: "",               // No password set
+		DB:       0,
+	}
+
+	// Create a new Redis client
+	redisClient, err := NewRedisClient(logger, opt) // Adjust the function signature if necessary
+	if err != nil {
+		t.Fatalf("Failed to create redis client: %v", err)
+	}
+
+	sse := NewSSEServer(testContext, redisClient, logger)
+
+	// Start the SSE server in a goroutine
+	go sse.Run()
+
+	// Create an unstarted server for testing
+	testServer := httptest.NewUnstartedServer(http.HandlerFunc(sse.HandleConnection))
+	testServer.Start()
+	defer testServer.Close()
+
+	// Prepare the request to the SSE endpoint with Authorization header
+	req, err := http.NewRequest(http.MethodGet, testServer.URL+"/admin/events/all", nil)
+	if err != nil {
+		t.Fatalf("Failed to create request: %v", err)
+	}
+	req.Header.Set("Authorization", "0800001066")
+
+	// Make the request to the test server
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("Failed to connect to SSE server: %v", err)
+	}
+	defer resp.Body.Close()
+
+	// Check for a successful response
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("Expected status OK; got %v", resp.Status)
+	}
+
+	// Wait for the context to expire
+	<-testContext.Done()
+	log.Println("Server closed successfully")
+}
+
+func MockRequest(t *testing.T, client *http.Client, url string) error {
 	t.Helper()
 
 	// Make the GET request
@@ -77,32 +152,4 @@ func MockRequest(t *testing.T, client *http.Client, url string, sseServer *Event
 	}
 
 	return nil // Return nil if everything was successful
-}
-
-//TODO implement redis like data stream mechanism to test
-
-type DataStream struct {
-	input chan string
-}
-
-// MockDataStream simulates subscribing to a data stream and forwarding messages to the SSE message channel.
-// The 'ctx' represents the request-level context, and when it is done, the subscription and connection are terminated.
-func (ds *DataStream) Subscribe(ctx context.Context, channel string, messageChan chan []byte) {
-	log.Println("calling subscriber")
-	go func() {
-		// Send 5 messages to simulate Redis messages
-		for i := 0; i < 5; i++ {
-			select {
-			case <-ctx.Done():
-				log.Println("Context done, stopping message generation")
-				return
-			default:
-				// Create a test message and send it to the message channel
-				message := fmt.Sprintf("Test message %d", i)
-				messageChan <- []byte(message) // Send to SSE's message channel
-				time.Sleep(1 * time.Second)    // Simulate delay between messages
-			}
-		}
-
-	}()
 }

@@ -10,6 +10,8 @@ func addRoutes(mux *http.ServeMux, logger *slog.Logger, config *Config, es *Even
 	mux.Handle("/admin/events/all", adminMiddleware(http.HandlerFunc(es.HandleConnection)))
 }
 
+// TODO Add other routes and complete the API
+
 func AdminAPIAccessMiddleware(config *Config, logger *slog.Logger) func(h http.Handler) http.Handler {
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -25,3 +27,5 @@ func AdminAPIAccessMiddleware(config *Config, logger *slog.Logger) func(h http.H
 		})
 	}
 }
+
+// TODO Add other middleware

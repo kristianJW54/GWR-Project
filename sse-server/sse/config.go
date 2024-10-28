@@ -7,9 +7,11 @@ import (
 )
 
 type Config struct {
-	ServerAddr string `yaml:"server_addr"`
-	ServerPort string `yaml:"server_port"`
-	AdminToken string `yaml:"admin_token"`
+	ServerAddr   string `yaml:"server_addr"`
+	ServerPort   string `yaml:"server_port"`
+	AdminToken   string `yaml:"admin_token"`
+	LogLevel     string `yaml:"log_level"`
+	LogAddSource bool   `yaml:"log_add_source"`
 	// Connection control can be specified here
 	Redis struct {
 		Addr     string `yaml:"addr"`
@@ -32,5 +34,10 @@ func LoadConfig(path string) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	if config.ServerAddr == "" || config.ServerPort == "" {
+		return nil, fmt.Errorf("config file missing required fields: server_addr or server_port")
+	}
+
 	return config, nil
 }

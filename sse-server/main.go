@@ -2,124 +2,141 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
+	"github.com/redis/go-redis/v9"
 	"io"
-	"log"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
 	"sse-server/sse"
 	"sync"
 	"syscall"
-	"time"
 )
 
-func Logger() *slog.Logger {
-	logHandler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-		Level:     slog.LevelInfo,
-		AddSource: true,
-	})
-	logger := slog.New(logHandler)
-	return logger
-}
+func Logger(level string, addSource bool) *slog.Logger {
+	// Parse the log level string
+	var slogLevel slog.Level
+	switch level {
+	case "debug":
+		slogLevel = slog.LevelDebug
+	case "info":
+		slogLevel = slog.LevelInfo
+	case "warn":
+		slogLevel = slog.LevelWarn
+	case "error":
+		slogLevel = slog.LevelError
+	default:
+		slogLevel = slog.LevelInfo // Default to info if invalid level
+	}
 
-//TODO finish building run function with CLI flag for mock or real data streaming
-//TODO create tests and use TDD to make sure it works
+	logHandler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level:     slogLevel,
+		AddSource: addSource,
+	})
+	return slog.New(logHandler)
+}
 
 func run(ctx context.Context, w io.Writer, args []string) error {
 	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt)
 	defer cancel()
 
-	srvLogger := Logger()
+	flags := flag.NewFlagSet("app", flag.ExitOnError)
 
-	var configPath string
-	if len(args) < 1 {
-		srvLogger.Warn("no arguments specified - using default config path")
-		configPath = "config.yaml"
-	} else {
-		configPath = args[0]
+	configPath := flags.String("config", "config.yaml", "path to config file")
+	logLevel := flags.String("log-level", "info", "Set the log level (debug, info, warn, error)")
+	logAddSource := flags.Bool("log-source", false, "Enable source file and line number in logs")
+
+	// Parse the args using the custom FlagSet
+	if err := flags.Parse(args); err != nil {
+		return fmt.Errorf("error parsing flags: %w", err)
+	}
+
+	// Check if the file exists
+	if _, err := os.Stat(*configPath); os.IsNotExist(err) {
+		return fmt.Errorf("config file does not exist at path: %s", *configPath)
 	}
 
 	// Load configuration from file or environment
-	config, err := sse.LoadConfig(configPath)
+	config, err := sse.LoadConfig(*configPath)
 	if err != nil {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
 
-}
+	// Apply command-line flags to override config settings if they are set
+	finalLogLevel := config.LogLevel
+	if *logLevel != "" {
+		finalLogLevel = *logLevel
+	}
+	finalLogAddSource := config.LogAddSource || *logAddSource
 
-// TODO clean up main function - encapsulate full server lifecycle - context - os.Signals
-// TODO make run() function with error int output which will be called by main
+	// Initialize the logger based on final log settings
+	logger := Logger(finalLogLevel, finalLogAddSource)
+	logger.Info("Loaded configuration", "configPath", *configPath)
 
-func main() {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	// Initialize the Mock DataStream
-	mc := &sse.DataStream{Input: make(chan string)}
-
-	httpLogger := Logger()
-
-	config := &sse.Config{
-		ServerAddr: "localhost:",
-		ServerPort: "8081",
-		AdminToken: "1234",
+	//Setup and connect to message service
+	options := &redis.Options{
+		Addr:     config.Redis.Addr,
+		Password: config.Redis.Password,
+		DB:       config.Redis.DB,
+	}
+	subscribe, err := sse.NewRedisClient(logger, options)
+	if err != nil {
+		return err
 	}
 
-	// Create the SSE server
-	sseServer := sse.NewSSEServer(ctx, mc)
+	// Initialising new SSE Server
+	sseServer := sse.NewSSEServer(ctx, subscribe, logger)
 
-	go sseServer.Run()
-
-	server := sse.NewServer(sseServer, config, httpLogger)
+	// Initialising new http server
+	server := sse.NewServer(sseServer, config, logger)
+	// Creating handler for the http server with routes loaded
 	srvHandler := sse.ServerHandler(server)
 
 	httpServer := &http.Server{
-		Addr:    "localhost:" + config.ServerPort,
+		Addr:    net.JoinHostPort(config.ServerAddr, config.ServerPort),
 		Handler: srvHandler,
 	}
 
+	// Go routines for running the server
+	go sseServer.Run()
+
 	go func() {
-		log.Printf("Listening on %s\n", httpServer.Addr)
+		logger.Info("listening on...", slog.String("addr", httpServer.Addr))
 		if err := httpServer.ListenAndServe(); err != nil {
-			log.Println("ListenAndServe error:", err)
+			logger.Error("ListendAndServe error", "err", err)
 		}
 	}()
 
-	// Set up a signal channel to listen for OS signals
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
 
-	// Wait for cancellation or OS signal to initiate shutdown
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
-		defer wg.Done()
-
-		// Wait for either context cancellation or an OS signal
-		select {
-		case <-ctx.Done():
-			// Context was canceled
-			log.Println("Context canceled, initiating shutdown...")
-		case <-signalChan:
-			// Received an OS signal
-			log.Println("Received shutdown signal, initiating shutdown...")
-			cancel() // Cancel the context to signal shutdown
-		}
-
-		// Create a shutdown context with a timeout
-		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer shutdownCancel()
-
-		// Shut down the HTTP server
-		if err := httpServer.Shutdown(shutdownCtx); err != nil {
-			fmt.Fprintf(os.Stderr, "Error shutting down HTTP server: %s\n", err)
+		err = sse.GracefulShutdown(ctx, cancel, &wg, signalChan, logger, httpServer)
+		if err != nil {
+			logger.Error("GracefulShutdown error: ", err)
 		}
 	}()
 
-	// Wait for all goroutines to finish
 	wg.Wait()
-	log.Println("Server shutdown complete.")
+	logger.Info("Shutdown complete")
+	return nil
+}
+
+//=================================================================
+// Main application function
+//=================================================================
+
+func main() {
+
+	ctx := context.Background()
+	if err := run(ctx, os.Stdout, os.Args); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
 
 }
