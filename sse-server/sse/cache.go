@@ -6,6 +6,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"log"
 	"log/slog"
+	"sync"
 	"time"
 )
 
@@ -37,25 +38,37 @@ func NewRedisClient(logger *slog.Logger, options *redis.Options) (*RedisClient, 
 //===========================================
 
 type Subscriber interface {
-	Subscribe(ctx context.Context, channel string, messageChan chan []byte)
+	Subscribe(ctx context.Context, channel string, messageChan chan []byte, wg *sync.WaitGroup)
 }
 
-func (rc *RedisClient) Subscribe(ctx context.Context, channel string, messageChan chan []byte) {
+func (rc *RedisClient) Subscribe(ctx context.Context, channel string, messageChan chan []byte, wg *sync.WaitGroup) {
+	defer wg.Done() // Ensure that this is called when the function exits
 	pubsub := rc.Client.PSubscribe(ctx, channel)
+
 	ch := pubsub.Channel() // Get the Go channel for messages
 	rc.logger.Info("subscribed on channel", slog.String("channel", channel))
 
-	go func() {
-		for msg := range ch {
+	for {
+		select {
+		case msg, ok := <-ch:
+			if !ok {
+				rc.logger.Info("subscription channel closed")
+				return // Exit if the channel is closed
+			}
+			// Forward the Redis message to the SSE message channel
 			select {
-			case messageChan <- []byte(msg.Payload): // Forward the Redis message to the SSE message channel
+			case messageChan <- []byte(msg.Payload):
 				rc.logger.Info("Received message: ", slog.String("message", msg.Payload))
 			case <-ctx.Done():
 				rc.logger.Info("Context done, stopping Redis subscriber")
 				return
 			}
+		case <-ctx.Done():
+			rc.logger.Info("Context done, stopping Redis subscriber")
+			pubsub.Close() // Close the pubsub to release resources
+			return
 		}
-	}()
+	}
 }
 
 //========================================================
@@ -66,21 +79,19 @@ type DataStream struct {
 	Input chan string
 }
 
-func (ds *DataStream) Subscribe(ctx context.Context, channel string, messageChan chan []byte) {
-	go func() {
-		// Send 5 messages to simulate Redis messages
-		for i := 0; i < 5; i++ {
-			select {
-			case <-ctx.Done():
-				log.Println("Context done, stopping message generation")
-				return
-			default:
-				// Create a test message and send it to the message channel
-				message := fmt.Sprintf("Test message %d", i)
-				messageChan <- []byte(message) // Send to SSE's message channel
-				time.Sleep(1 * time.Second)    // Simulate delay between messages
-			}
+func (ds *DataStream) Subscribe(ctx context.Context, channel string, messageChan chan []byte, wg *sync.WaitGroup) {
+	defer wg.Done()
+	// Send 5 messages to simulate Redis messages
+	for i := 0; i < 5; i++ {
+		select {
+		case <-ctx.Done():
+			log.Println("Context done, stopping message generation")
+			return
+		default:
+			// Create a test message and send it to the message channel
+			message := fmt.Sprintf("Test message %d", i)
+			messageChan <- []byte(message) // Send to SSE's message channel
+			time.Sleep(1 * time.Second)    // Simulate delay between messages
 		}
-
-	}()
+	}
 }

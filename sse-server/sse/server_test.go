@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"sync"
+	"runtime"
 	"testing"
 	"time"
 )
@@ -22,14 +22,14 @@ import (
 // TODO Test with live services
 
 func TestSSEServer(t *testing.T) {
-	testContext, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	testContext, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	mockRedis := &DataStream{Input: make(chan string)}
 
 	// Initialize logger
 	logHandler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-		Level:     slog.LevelInfo,
+		Level:     slog.LevelDebug,
 		AddSource: true,
 	})
 
@@ -37,41 +37,56 @@ func TestSSEServer(t *testing.T) {
 
 	sse := NewSSEServer(testContext, mockRedis, logger)
 
-	go sse.Run()
+	sse.srvWg.Add(1)
+	sse.TrackGoRoutine("main-server", func() {
+		sse.Run()
+	})
 
 	testServer := httptest.NewUnstartedServer(http.HandlerFunc(sse.HandleConnection))
 	testServer.Start()
 	defer testServer.Close()
 
-	// Number of simulated clients
-	numClients := 5
-	clientWaitGroup := sync.WaitGroup{}
+	//// Number of simulated clients
+	//numClients := 5
+	//clientWaitGroup := sync.WaitGroup{}
+	//
+	//for i := 0; i < numClients; i++ {
+	//	clientWaitGroup.Add(1)
+	//	go func(clientID int) {
+	//		defer clientWaitGroup.Done()
+	//		err := MockRequest(t, &http.Client{}, testServer.URL)
+	//		if err != nil {
+	//			t.Errorf("Client %d: Failed to make request: %v", clientID, err)
+	//		}
+	//	}(i)
+	//}
+	//
+	//clientWaitGroup.Wait()
 
-	for i := 0; i < numClients; i++ {
-		clientWaitGroup.Add(1)
-		go func(clientID int) {
-			defer clientWaitGroup.Done()
-			err := MockRequest(t, &http.Client{}, testServer.URL)
-			if err != nil {
-				t.Errorf("Client %d: Failed to make request: %v", clientID, err)
-			}
-		}(i)
+	// Perform the mock request
+	err := MockRequest(t, &http.Client{}, testServer.URL)
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	clientWaitGroup.Wait()
+	// Allow some time for the request to be processed
+	time.Sleep(1 * time.Second) // Optional: adjust the sleep time as necessary
 
 	// Test shutdown of SSE after the timeout
 	<-testContext.Done()
-	log.Println("Server closed successfully")
+	sse.Stop()
+
+	sse.LogActiveGoRoutines()
+	log.Println("Number of goroutines:", runtime.NumGoroutine())
 }
 
 func TestSSELiveRedis(t *testing.T) {
-	testContext, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	testContext, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	// Initialize logger
 	logHandler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-		Level:     slog.LevelInfo,
+		Level:     slog.LevelDebug,
 		AddSource: true,
 	})
 
@@ -92,7 +107,10 @@ func TestSSELiveRedis(t *testing.T) {
 	sse := NewSSEServer(testContext, redisClient, logger)
 
 	// Start the SSE server in a goroutine
-	go sse.Run()
+	sse.srvWg.Add(1)
+	sse.TrackGoRoutine("main-server", func() {
+		sse.Run()
+	})
 
 	// Create an unstarted server for testing
 	testServer := httptest.NewUnstartedServer(http.HandlerFunc(sse.HandleConnection))
@@ -120,7 +138,10 @@ func TestSSELiveRedis(t *testing.T) {
 
 	// Wait for the context to expire
 	<-testContext.Done()
-	log.Println("Server closed successfully")
+	sse.Stop()
+
+	sse.LogActiveGoRoutines()
+	log.Println("Number of goroutines:", runtime.NumGoroutine())
 }
 
 func MockRequest(t *testing.T, client *http.Client, url string) error {

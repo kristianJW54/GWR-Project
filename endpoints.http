@@ -1,0 +1,13 @@
+### GET request to server to subscribe on all channels - localhost
+GET http://localhost:8081/admin/events/all
+Authorization: 0800001066
+
+###
+
+GET http://localhost:8081/admin/events/all
+Authorization: 0800001066
+
+###
+
+GET http://localhost:8081/admin/events/all
+Authorization: 0800001066

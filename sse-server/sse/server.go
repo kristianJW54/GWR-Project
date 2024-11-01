@@ -2,12 +2,18 @@ package sse
 
 import (
 	"context"
+	"flag"
 	"fmt"
+	"github.com/redis/go-redis/v9"
+	"io"
 	"log"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
+	"os/signal"
 	"sync"
+	"syscall"
 	"time"
 )
 
@@ -53,6 +59,14 @@ type EventServer struct {
 	sync          sync.Mutex
 	subscriber    Subscriber
 	logger        *slog.Logger
+
+	srvWg sync.WaitGroup
+	reqWg sync.WaitGroup
+
+	//Go-routine tracking fields
+	goroutineTracker map[int]string
+	trackerMutex     sync.Mutex
+	goroutineID      int
 }
 
 func NewSSEServer(parentCtx context.Context, sub Subscriber, logger *slog.Logger) *EventServer {
@@ -67,31 +81,36 @@ func NewSSEServer(parentCtx context.Context, sub Subscriber, logger *slog.Logger
 		clients:       make(map[chan []byte]struct{}),
 		subscriber:    sub,
 		logger:        logger,
+
+		goroutineTracker: make(map[int]string),
+		goroutineID:      0,
 	}
 }
 
 func (sseServer *EventServer) Run() {
-	log.Println("Started server")
+	sseServer.logger.Info("Starting server")
+	defer sseServer.srvWg.Done()
+
 	for {
 		select {
 		case <-sseServer.context.Done():
-			log.Println("Stopping SSE server")
-			for client := range sseServer.clients {
-				sseServer.logger.Debug("closing client", "client", client)
-				close(client)
-				delete(sseServer.clients, client)
-			}
+			sseServer.logger.Info("server shutdown context called-- %s", "err", sseServer.context.Err())
+
+			sseServer.reqWg.Wait() // Wait for the request routines to finish
+
 			return
 
 		case clientConnection := <-sseServer.ConnectClient:
 			sseServer.sync.Lock()
 			sseServer.clients[clientConnection] = struct{}{}
-			sseServer.logger.Debug("connecting client", "client", sseServer.clients[clientConnection])
+			sseServer.logger.Debug("connecting client", "client", clientConnection)
+			log.Printf("connecting client %v", clientConnection)
 			sseServer.sync.Unlock()
 
 		case clientDisconnect := <-sseServer.CloseClient:
 			sseServer.sync.Lock()
 			sseServer.logger.Debug("closing client", "client", sseServer.clients[clientDisconnect])
+			log.Printf("closing client %v", sseServer.clients[clientDisconnect])
 			delete(sseServer.clients, clientDisconnect)
 			sseServer.sync.Unlock()
 		}
@@ -99,6 +118,13 @@ func (sseServer *EventServer) Run() {
 }
 
 func (sseServer *EventServer) Stop() {
+	sseServer.logger.Info("Waiting for server routines to finish")
+	for client := range sseServer.clients {
+		sseServer.logger.Debug("closing client", "client", client)
+		close(client)
+		delete(sseServer.clients, client)
+	}
+	sseServer.srvWg.Wait()
 	sseServer.cancel()
 }
 
@@ -160,32 +186,43 @@ func (sseServer *EventServer) HandleConnection(w http.ResponseWriter, req *http.
 		return
 	}
 
+	// Create a combined context that will be canceled when either the request or server context is done
+	ctx, cancel := context.WithCancel(req.Context())
+	defer cancel() // Ensure that cancel is called when done
+
 	message := make(chan []byte)
 	sseServer.ConnectClient <- message
 
 	//keeping the connection alive with keep-alive protocol
 	keepAliveTicker := time.NewTicker(15 * time.Second)
 	keepAliveMsg := []byte(":keepalive\n\n")
-	notify := req.Context().Done()
-	serverNotify := sseServer.context.Done()
 
-	go func() {
+	notify := req.Context().Done()
+
+	sseServer.TrackGoRoutine("request handler routine", func() {
 		select {
-		case <-serverNotify:
-			sseServer.logger.Debug("sse server context signalled done - closing connection")
-			sseServer.CloseClient <- message
-			keepAliveTicker.Stop()
 		case <-notify:
-			sseServer.logger.Debug("request scope context signalled done - closing connection")
+			sseServer.logger.Info("request context done")
 			sseServer.CloseClient <- message
 			keepAliveTicker.Stop()
+		case <-sseServer.context.Done():
+			keepAliveTicker.Stop()
+			return
 		}
+	})
+
+	defer func() {
+		sseServer.CloseClient <- message
+		close(message)
 	}()
 
 	clientPathRequested := req.URL.Path
-	sseServer.logger.Debug("client path requested: ", slog.String("path", clientPathRequested))
+	sseServer.logger.Debug("client path requested", slog.String("path", clientPathRequested))
 
-	go sseServer.subscriber.Subscribe(sseServer.context, "*", message)
+	sseServer.reqWg.Add(1)
+	sseServer.TrackGoRoutine("subscribe routine", func() {
+		sseServer.subscriber.Subscribe(ctx, "*", message, &sseServer.reqWg)
+	})
 
 	// Loop to handle sending messages or keep-alive signals
 	for {
@@ -195,7 +232,6 @@ func (sseServer *EventServer) HandleConnection(w http.ResponseWriter, req *http.
 				return
 			}
 			_, err := fmt.Fprintf(w, "data: %s\n\n", msg)
-			sseServer.logger.Debug("broadcast: ", slog.String("data", string(msg)))
 			if err != nil {
 				log.Printf("error writing messeage: %v", err)
 				return
@@ -209,18 +245,160 @@ func (sseServer *EventServer) HandleConnection(w http.ResponseWriter, req *http.
 				return
 			}
 			flusher.Flush()
-		case <-serverNotify:
-			for msg := range message {
-				// Handle remaining messages
-				if _, err := fmt.Fprintf(w, "data: %s\n\n", msg); err != nil {
-					sseServer.logger.Debug("error writing server message", "err", err)
-					return
-				}
-				flusher.Flush()
-			}
-			sseServer.logger.Debug("no more messages - buffer cleared")
+		case <-notify:
+			flusher.Flush()
+			return
+		case <-sseServer.context.Done():
 			return
 		}
 	}
 
+}
+
+//===================================================================
+// Tracking and debugging go-routines for Event server
+//===================================================================
+
+func (sseServer *EventServer) TrackGoRoutine(name string, f func()) {
+
+	sseServer.trackerMutex.Lock()
+	id := sseServer.goroutineID
+	sseServer.goroutineID++
+	sseServer.goroutineTracker[id] = name
+	sseServer.logger.Debug("started goroutine--", slog.Int("ID", id), slog.String("name", name))
+	sseServer.trackerMutex.Unlock()
+
+	go func() {
+		defer func() {
+			sseServer.trackerMutex.Lock()
+			delete(sseServer.goroutineTracker, id)
+			sseServer.logger.Debug("finished goroutine--", slog.Int("ID", id), slog.String("name", name))
+			sseServer.trackerMutex.Unlock()
+		}()
+		f()
+	}()
+}
+
+func (sseServer *EventServer) LogActiveGoRoutines() {
+	sseServer.trackerMutex.Lock()
+	defer sseServer.trackerMutex.Unlock()
+	sseServer.logger.Debug("go routines left in tracker", slog.Int("total", len(sseServer.goroutineTracker)))
+	sseServer.logger.Debug("go routines in tracker: ")
+	for id, name := range sseServer.goroutineTracker {
+		sseServer.logger.Debug("tracking goroutine", slog.String("goroutine", name), slog.Int("ID", id))
+	}
+}
+
+func Logger(level string, addSource bool) *slog.Logger {
+	// Parse the log level string
+	var slogLevel slog.Level
+	switch level {
+	case "debug":
+		slogLevel = slog.LevelDebug
+	case "info":
+		slogLevel = slog.LevelInfo
+	case "warn":
+		slogLevel = slog.LevelWarn
+	case "error":
+		slogLevel = slog.LevelError
+	default:
+		slogLevel = slog.LevelInfo // Default to info if invalid level
+	}
+
+	logHandler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level:     slogLevel,
+		AddSource: addSource,
+	})
+	return slog.New(logHandler)
+}
+
+func Run(ctx context.Context, w io.Writer, args []string) error {
+	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt)
+	defer cancel()
+
+	flags := flag.NewFlagSet("app", flag.ExitOnError)
+
+	configPath := flags.String("config", "config.yaml", "path to config file")
+	logLevel := flags.String("log-level", "info", "Set the log level (debug, info, warn, error)")
+	logAddSource := flags.Bool("log-source", false, "Enable source file and line number in logs")
+
+	// Parse the args using the custom FlagSet
+	if err := flags.Parse(args); err != nil {
+		return fmt.Errorf("error parsing flags: %w", err)
+	}
+
+	// Check if the file exists
+	if _, err := os.Stat(*configPath); os.IsNotExist(err) {
+		return fmt.Errorf("config file does not exist at path: %s", *configPath)
+	}
+
+	// Load configuration from file or environment
+	config, err := LoadConfig(*configPath)
+	if err != nil {
+		return fmt.Errorf("failed to load config: %w", err)
+	}
+
+	// Apply command-line flags to override config settings if they are set
+	finalLogLevel := config.LogLevel
+	if *logLevel != "" {
+		finalLogLevel = *logLevel
+	}
+	finalLogAddSource := config.LogAddSource || *logAddSource
+
+	// Initialize the logger based on final log settings
+	logger := Logger(finalLogLevel, finalLogAddSource)
+	logger.Info("Loaded configuration", "configPath", *configPath)
+
+	//Setup and connect to message service
+	options := &redis.Options{
+		Addr:     config.Redis.Addr,
+		Password: config.Redis.Password,
+		DB:       config.Redis.DB,
+	}
+	subscribe, err := NewRedisClient(logger, options)
+	if err != nil {
+		return err
+	}
+
+	// Initialising new SSE Server
+	sseServer := NewSSEServer(ctx, subscribe, logger)
+
+	// Initialising new http server
+	server := NewServer(sseServer, config, logger)
+	// Creating handler for the http server with routes loaded
+	srvHandler := ServerHandler(server)
+
+	httpServer := &http.Server{
+		Addr:    net.JoinHostPort(config.ServerAddr, config.ServerPort),
+		Handler: srvHandler,
+	}
+
+	// Go routines for running the server
+	sseServer.srvWg.Add(1)
+	sseServer.TrackGoRoutine("main-server", func() {
+		sseServer.Run()
+	})
+
+	go func() {
+		logger.Info("listening on...", slog.String("addr", httpServer.Addr))
+		if err := httpServer.ListenAndServe(); err != nil {
+			logger.Error("ListendAndServe error", "err", err)
+		}
+	}()
+
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		err = GracefulShutdown(ctx, cancel, &wg, signalChan, logger, httpServer)
+		if err != nil {
+			logger.Error("GracefulShutdown error", "err", err)
+		}
+	}()
+
+	wg.Wait()
+	logger.Info("Shutdown complete")
+	return nil
 }
