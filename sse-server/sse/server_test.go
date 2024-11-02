@@ -30,7 +30,7 @@ func TestSSEServer(t *testing.T) {
 	// Initialize logger
 	logHandler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level:     slog.LevelDebug,
-		AddSource: true,
+		AddSource: false,
 	})
 
 	logger := slog.New(logHandler)
@@ -45,23 +45,6 @@ func TestSSEServer(t *testing.T) {
 	testServer := httptest.NewUnstartedServer(http.HandlerFunc(sse.HandleConnection))
 	testServer.Start()
 	defer testServer.Close()
-
-	//// Number of simulated clients
-	//numClients := 5
-	//clientWaitGroup := sync.WaitGroup{}
-	//
-	//for i := 0; i < numClients; i++ {
-	//	clientWaitGroup.Add(1)
-	//	go func(clientID int) {
-	//		defer clientWaitGroup.Done()
-	//		err := MockRequest(t, &http.Client{}, testServer.URL)
-	//		if err != nil {
-	//			t.Errorf("Client %d: Failed to make request: %v", clientID, err)
-	//		}
-	//	}(i)
-	//}
-	//
-	//clientWaitGroup.Wait()
 
 	// Perform the mock request
 	err := MockRequest(t, &http.Client{}, testServer.URL)
@@ -138,6 +121,7 @@ func TestSSELiveRedis(t *testing.T) {
 
 	// Wait for the context to expire
 	<-testContext.Done()
+	<-req.Context().Done()
 	sse.Stop()
 
 	sse.LogActiveGoRoutines()

@@ -110,7 +110,7 @@ func (sseServer *EventServer) Run() {
 		case clientDisconnect := <-sseServer.CloseClient:
 			sseServer.sync.Lock()
 			sseServer.logger.Debug("closing client", "client", sseServer.clients[clientDisconnect])
-			log.Printf("closing client %v", sseServer.clients[clientDisconnect])
+			log.Printf("closing client %v", clientDisconnect)
 			delete(sseServer.clients, clientDisconnect)
 			sseServer.sync.Unlock()
 		}
@@ -186,7 +186,6 @@ func (sseServer *EventServer) HandleConnection(w http.ResponseWriter, req *http.
 		return
 	}
 
-	// Create a combined context that will be canceled when either the request or server context is done
 	ctx, cancel := context.WithCancel(req.Context())
 	defer cancel() // Ensure that cancel is called when done
 
@@ -197,24 +196,19 @@ func (sseServer *EventServer) HandleConnection(w http.ResponseWriter, req *http.
 	keepAliveTicker := time.NewTicker(15 * time.Second)
 	keepAliveMsg := []byte(":keepalive\n\n")
 
-	notify := req.Context().Done()
-
+	sseServer.reqWg.Add(1)
 	sseServer.TrackGoRoutine("request handler routine", func() {
+		defer sseServer.reqWg.Done()
+		defer keepAliveTicker.Stop()
 		select {
-		case <-notify:
+		case <-ctx.Done():
 			sseServer.logger.Info("request context done")
 			sseServer.CloseClient <- message
-			keepAliveTicker.Stop()
 		case <-sseServer.context.Done():
-			keepAliveTicker.Stop()
+			sseServer.logger.Info("server context done")
 			return
 		}
 	})
-
-	defer func() {
-		sseServer.CloseClient <- message
-		close(message)
-	}()
 
 	clientPathRequested := req.URL.Path
 	sseServer.logger.Debug("client path requested", slog.String("path", clientPathRequested))
@@ -245,8 +239,7 @@ func (sseServer *EventServer) HandleConnection(w http.ResponseWriter, req *http.
 				return
 			}
 			flusher.Flush()
-		case <-notify:
-			flusher.Flush()
+		case <-ctx.Done():
 			return
 		case <-sseServer.context.Done():
 			return
@@ -319,7 +312,6 @@ func Run(ctx context.Context, w io.Writer, args []string) error {
 	flags := flag.NewFlagSet("app", flag.ExitOnError)
 
 	configPath := flags.String("config", "config.yaml", "path to config file")
-	logLevel := flags.String("log-level", "info", "Set the log level (debug, info, warn, error)")
 	logAddSource := flags.Bool("log-source", false, "Enable source file and line number in logs")
 
 	// Parse the args using the custom FlagSet
@@ -327,25 +319,22 @@ func Run(ctx context.Context, w io.Writer, args []string) error {
 		return fmt.Errorf("error parsing flags: %w", err)
 	}
 
-	// Check if the file exists
-	if _, err := os.Stat(*configPath); os.IsNotExist(err) {
-		return fmt.Errorf("config file does not exist at path: %s", *configPath)
-	}
-
-	// Load configuration from file or environment
+	// Load configuration
 	config, err := LoadConfig(*configPath)
 	if err != nil {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
 
-	// Apply command-line flags to override config settings if they are set
+	// Debug print to check config values
+	fmt.Println("Config log level:", config.LogLevel)
+
+	// Use the log level and add source setting from the config
 	finalLogLevel := config.LogLevel
-	if *logLevel != "" {
-		finalLogLevel = *logLevel
-	}
 	finalLogAddSource := config.LogAddSource || *logAddSource
 
-	// Initialize the logger based on final log settings
+	fmt.Println("Final log level:", finalLogLevel) // Debug print
+
+	// Initialize the logger
 	logger := Logger(finalLogLevel, finalLogAddSource)
 	logger.Info("Loaded configuration", "configPath", *configPath)
 
